@@ -28,16 +28,19 @@ class Submission(models.Model):
     )
     response_text = models.TextField(blank=True)
     file_upload = models.FileField(upload_to="submissions/", blank=True, null=True)
-    submitted_at = models.DateTimeField(auto_now_add=True)
+    submitted_at = models.DateTimeField(auto_now=True)
     is_late = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ("assignment", "student")
 
     def save(self, *args, **kwargs):
-        if not self.pk:
-            self.is_late = timezone.now() > self.assignment.due_date
+        # recomputed on every (re)submit
+        self.is_late = timezone.now() > self.assignment.due_date
         super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.student.username} -> {self.assignment}"
 
 
 class Grade(models.Model):
@@ -50,8 +53,12 @@ class Grade(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
         related_name="grades_given"
     )
-    graded_at = models.DateTimeField(auto_now_add=True)
+    graded_at = models.DateTimeField(auto_now=True)
 
     @property
     def percentage(self):
-        return (self.points_earned / self.submission.assignment.points_possible) * 100
+        possible = self.submission.assignment.points_possible
+        return (self.points_earned / possible) * 100 if possible else 0
+
+    def __str__(self):
+        return f"{self.submission}: {self.points_earned}"

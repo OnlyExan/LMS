@@ -3,6 +3,7 @@ from datetime import timedelta
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
+from django.utils.text import slugify
 
 
 def make_token():
@@ -18,6 +19,16 @@ class School(models.Model):
     slug = models.SlugField(unique=True)
     join_code = models.CharField(max_length=12, unique=True, default=make_join_code)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    def save(self, *args, **kwargs):
+        # auto unique slug from name
+        if not self.slug:
+            base = slugify(self.name)[:40] or "school"
+            slug, n = base, 2
+            while School.objects.filter(slug=slug).exists():
+                slug, n = f"{base}-{n}", n + 1
+            self.slug = slug
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name
@@ -57,6 +68,13 @@ class AdminInvite(models.Model):
             self.expires_at = timezone.now() + timedelta(days=7)
         super().save(*args, **kwargs)
 
+    def revoke(self):
+        self.expires_at = timezone.now()
+        self.save(update_fields=["expires_at"])
+
     @property
     def is_valid(self):
         return not self.accepted and self.expires_at > timezone.now()
+
+    def __str__(self):
+        return f"Invite {self.email} -> {self.school} ({self.role})"

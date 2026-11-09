@@ -1,23 +1,27 @@
 from functools import wraps
+from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from .models import User
 
 
-def admin_required(view):
-    @wraps(view)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated or request.user.role != User.ADMIN:
-            raise PermissionDenied
-        return view(request, *args, **kwargs)
-    return wrapper
+def _role_required(*roles):
+    """Login + school membership + one of `roles` (empty = any role)."""
+    def decorator(view):
+        @wraps(view)
+        def wrapper(request, *args, **kwargs):
+            if not request.user.is_authenticated:
+                return redirect_to_login(request.get_full_path())
+            # every tenant view needs a school; superusers w/o school use /admin/
+            if request.user.school_id is None:
+                raise PermissionDenied
+            if roles and request.user.role not in roles:
+                raise PermissionDenied
+            return view(request, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
-def instructor_required(view):
-    @wraps(view)
-    def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
-            raise PermissionDenied
-        if request.user.role not in (User.INSTRUCTOR, User.ADMIN):
-            raise PermissionDenied
-        return view(request, *args, **kwargs)
-    return wrapper
+school_member_required = _role_required()
+student_required = _role_required(User.STUDENT)
+instructor_required = _role_required(User.INSTRUCTOR, User.ADMIN)
+admin_required = _role_required(User.ADMIN)
