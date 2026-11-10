@@ -125,6 +125,7 @@ def assignment_detail(request, pk):
         submission = (Submission.objects.filter(assignment=assignment, student=user)
                       .select_related("grade").first())
         ctx.update(submission=submission,
+                   versions=submission.versions.all() if submission else [],
                    grade=getattr(submission, "grade", None) if submission else None,
                    can_submit=not (submission and hasattr(submission, "grade")))
     else:
@@ -203,7 +204,8 @@ def grade_submission(request, pk):
         messages.success(request, f"Graded {submission.student.username}.")
         return redirect("assignments:submission_list")
     return render(request, "assignments/grade_form.html",
-                  {"form": form, "submission": submission, "grade": grade})
+                  {"form": form, "submission": submission, "grade": grade,
+                   "versions": submission.versions.all()})
 
 
 @student_required

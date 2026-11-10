@@ -38,6 +38,14 @@ class Submission(models.Model):
         # recomputed on every (re)submit
         self.is_late = timezone.now() > self.assignment.due_date
         super().save(*args, **kwargs)
+        # snapshot every submit/resubmit so old versions stay viewable
+        SubmissionVersion.objects.create(
+            submission=self,
+            number=self.versions.count() + 1,
+            response_text=self.response_text,
+            file_upload=self.file_upload.name or None,
+            is_late=self.is_late,
+        )
 
     def __str__(self):
         return f"{self.student.username} -> {self.assignment}"
@@ -62,3 +70,20 @@ class Grade(models.Model):
 
     def __str__(self):
         return f"{self.submission}: {self.points_earned}"
+
+
+class SubmissionVersion(models.Model):
+    """History of a submission — one row per submit/resubmit."""
+    submission = models.ForeignKey(Submission, on_delete=models.CASCADE, related_name="versions")
+    number = models.PositiveIntegerField()
+    response_text = models.TextField(blank=True)
+    file_upload = models.FileField(upload_to="submissions/", blank=True, null=True)
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    is_late = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-number"]
+        unique_together = ("submission", "number")
+
+    def __str__(self):
+        return f"{self.submission} v{self.number}"

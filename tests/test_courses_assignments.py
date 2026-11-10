@@ -222,3 +222,40 @@ class CrossTenantTests(LMSTestCase):  # LSM-53, LSM-65
         self.login(self.data["a"]["admin"])
         r = self.client.get(reverse("assignments:submission_list"), {"status": "all"})
         self.assertEqual(len(r.context["submissions"]), 0)
+
+
+@override_settings(MEDIA_ROOT="/tmp/lms_test_media_cleanup")
+class FileCleanupTests(LMSTestCase):
+    def _sub_with_file(self, name="hw.txt"):
+        a = self.data["a"]
+        sub = Submission(assignment=a["asg"], student=a["stu"])
+        sub.file_upload.save(name, SimpleUploadedFile(name, b"data"), save=False)
+        sub.save()
+        return sub
+
+    def test_deleting_assignment_deletes_file(self):
+        sub = self._sub_with_file()
+        storage, name = sub.file_upload.storage, sub.file_upload.name
+        self.assertTrue(storage.exists(name))
+        with self.captureOnCommitCallbacks(execute=True):
+            self.data["a"]["asg"].delete()  # cascades to submission
+        self.assertFalse(storage.exists(name))
+
+    def test_resubmit_keeps_old_file_as_version(self):
+        sub = self._sub_with_file("v1.txt")
+        storage, old = sub.file_upload.storage, sub.file_upload.name
+        sub.file_upload.save("v2.txt", SimpleUploadedFile("v2.txt", b"new"), save=True)
+        self.assertEqual(sub.versions.count(), 2)
+        self.assertEqual(sub.versions.last().file_upload.name, old)  # v1 still points at old file
+        self.assertTrue(storage.exists(old))
+        self.assertTrue(storage.exists(sub.file_upload.name))
+
+    def test_deleting_assignment_deletes_all_version_files(self):
+        sub = self._sub_with_file("v1.txt")
+        storage, old = sub.file_upload.storage, sub.file_upload.name
+        sub.file_upload.save("v2.txt", SimpleUploadedFile("v2.txt", b"new"), save=True)
+        new = sub.file_upload.name
+        with self.captureOnCommitCallbacks(execute=True):
+            self.data["a"]["asg"].delete()
+        self.assertFalse(storage.exists(old))
+        self.assertFalse(storage.exists(new))

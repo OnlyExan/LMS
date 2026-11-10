@@ -176,3 +176,11 @@ if os.getenv("SUPABASE_S3_BUCKET"):
         },
         "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
     }
+
+# print errors to stdout so they show in Vercel runtime logs (DEBUG=False hides them otherwise)
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {"console": {"class": "logging.StreamHandler"}},
+    "loggers": {"django": {"handlers": ["console"], "level": "ERROR"}},
+}

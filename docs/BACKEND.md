@@ -57,14 +57,15 @@ Always: `role`, `school`.
 | `assignments:assignment_create` | `/assignments/course/<course_pk>/new/` | `assignments/assignment_form.html` | `form`, `course`, `assignment=None` |
 | `assignments:assignment_edit` | `/assignments/<pk>/edit/` | `assignments/assignment_form.html` | `form`, `course`, `assignment` |
 | `assignments:assignment_delete` | `/assignments/<pk>/delete/` | `assignments/assignment_confirm_delete.html` | `assignment` |
-| `assignments:assignment_detail` | `/assignments/<pk>/` | `assignments/assignment_detail.html` | `assignment`, `course`, `is_past_due` + **student:** `submission`, `grade`, `can_submit` · **instructor/admin:** `submissions`, `submission_count`, `ungraded_count`, `enrolled_count` |
+| `assignments:assignment_detail` | `/assignments/<pk>/` | `assignments/assignment_detail.html` | `assignment`, `course`, `is_past_due` + **student:** `submission`, `versions`, `grade`, `can_submit` · **instructor/admin:** `submissions`, `submission_count`, `ungraded_count`, `enrolled_count` |
 | `assignments:submit` | `/assignments/<pk>/submit/` | `assignments/submit.html` | `form` (response_text, file_upload), `assignment`, `submission` (existing, can resubmit until graded) |
 | `assignments:submission_list` | `/assignments/submissions/` | `assignments/submission_list.html` | `submissions` (`.student .assignment .is_late .grade`), `status`, `filters`; GET `?status=ungraded|graded|all&course=&q=` |
-| `assignments:grade_submission` | `/assignments/submissions/<pk>/grade/` | `assignments/grade_form.html` | `form` (points_earned, feedback), `submission`, `grade` |
+| `assignments:grade_submission` | `/assignments/submissions/<pk>/grade/` | `assignments/grade_form.html` | `form` (points_earned, feedback), `submission`, `grade`, `versions` |
 | `assignments:my_grades` | `/assignments/grades/` | `assignments/my_grades.html` | `grades` (use `grade.percentage`) |
 | `assignments:gradebook` | `/assignments/course/<course_pk>/gradebook/` | `assignments/gradebook.html` | `course`, `assignments`, `total_possible`, `rows` → each `{student, cells:[{assignment, submission, grade}], earned, percent}` |
 
-Uploaded files: `{{ submission.file_upload.url }}` (served in DEBUG).
+Uploaded files: `{{ submission.file_upload.url }}`.
+Submission history: `versions` is newest-first; each has `.number .response_text .file_upload .submitted_at .is_late`. Old files are kept on resubmit.
 
 ## Running tests
 `python manage.py test` — 38 tests, they use stub templates so they pass without the frontend.
