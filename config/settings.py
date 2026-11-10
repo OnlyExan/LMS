@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import os
+import sys
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -83,8 +84,11 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
+TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+
 # SQLite by default; set POSTGRES_DB (+ user/pass/host) in .env to switch
-if os.getenv("POSTGRES_DB"):
+# tests always use SQLite so they never touch Supabase
+if os.getenv("POSTGRES_DB") and not TESTING:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
