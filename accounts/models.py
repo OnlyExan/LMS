@@ -43,6 +43,17 @@ class User(AbstractUser):
     )
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=STUDENT)
 
+    def save(self, *args, **kwargs):
+        # superuser acting as a school admin: don't persist the borrowed school/role
+        if getattr(self, "_acting", False) and self.pk:
+            if kwargs.get("update_fields") is None:
+                kwargs["update_fields"] = [f.name for f in self._meta.concrete_fields
+                                           if f.name not in ("id", "school", "role")]
+            else:
+                kwargs["update_fields"] = [f for f in kwargs["update_fields"]
+                                           if f not in ("school", "role", "school_id")]
+        super().save(*args, **kwargs)
+
     @property
     def is_school_admin(self):
         return self.role == self.ADMIN

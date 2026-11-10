@@ -19,4 +19,7 @@ urlpatterns = [
     path("admin/users/<int:pk>/role/", views.change_role, name="change_role"),
     path("admin/users/<int:pk>/toggle-active/", views.toggle_active, name="toggle_active"),
     path("admin/settings/", views.school_settings, name="school_settings"),
+    # superuser platform mode
+    path("platform/schools/", views.switch_school, name="switch_school"),
+    path("platform/exit/", views.exit_school, name="exit_school"),
 ]

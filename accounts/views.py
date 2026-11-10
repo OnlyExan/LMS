@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.contrib import messages
 from django.contrib.auth import login
+from django.contrib.auth.decorators import user_passes_test
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,6 +13,7 @@ from .forms import (
     InviteAcceptForm, InviteForm, RegisterForm, RoleChangeForm,
     SchoolCreateForm, SchoolSettingsForm,
 )
+from .middleware import SESSION_KEY
 from .models import AdminInvite, School, User, make_join_code
 
 
@@ -191,3 +193,31 @@ def school_settings(request):
         messages.success(request, "School settings saved.")
         return redirect("accounts:school_settings")
     return render(request, "accounts/school_settings.html", {"form": form, "school": school})
+
+
+# ---------- superuser platform mode ----------
+
+superuser_required = user_passes_test(lambda u: u.is_active and u.is_superuser,
+                                      login_url="accounts:login")
+
+
+@superuser_required
+def switch_school(request):
+    if request.method == "POST":
+        school = get_object_or_404(School, pk=request.POST.get("school"))
+        request.session[SESSION_KEY] = school.pk
+        messages.info(request, f"Viewing {school.name} as admin.")
+        return redirect("dashboard")
+    schools = School.objects.annotate(
+        member_count=Count("members", distinct=True),
+        course_count=Count("courses", distinct=True),
+    ).order_by("name")
+    return render(request, "accounts/switch_school.html",
+                  {"schools": schools, "acting_school": request.acting_school})
+
+
+@superuser_required
+@require_POST
+def exit_school(request):
+    request.session.pop(SESSION_KEY, None)
+    return redirect("accounts:switch_school")

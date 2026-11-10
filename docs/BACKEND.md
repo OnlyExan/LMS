@@ -29,6 +29,11 @@ Frontend just needs to create the templates below. Every template should `{% ext
 | `accounts:toggle_active` | `/accounts/admin/users/<pk>/toggle-active/` | POST only | |
 | `accounts:school_settings` | `/accounts/admin/settings/` | `accounts/school_settings.html` | `form` (name, regenerate_join_code), `school` (`.join_code`) |
 
+| `accounts:switch_school` | `/accounts/platform/schools/` | `accounts/switch_school.html` | superuser only. `schools` (each `.member_count .course_count`), `acting_school`; POST field `school` |
+| `accounts:exit_school` | `/accounts/platform/exit/` | POST only | |
+
+Superuser platform mode: a superuser picks a school and browses as its admin. `request.acting_school` is set while acting (show a banner + exit button in `base.html`).
+
 The invite link shows up as a flash message after creating an invite (we're not sending email).
 
 ## dashboard — `/` (`dashboard`) → `dashboard.html`

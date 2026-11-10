@@ -91,8 +91,8 @@ class DecoratorTests(LMSTestCase):  # LSM-12
             self.assertEqual(self.client.get(url).status_code, code, who)
 
     def test_user_without_school_blocked(self):
-        su = User.objects.create_superuser("root", password=PW)
-        self.login(su)
+        orphan = User.objects.create_user("orphan", password=PW)  # no school, not superuser
+        self.login(orphan)
         self.assertEqual(self.client.get(reverse("dashboard")).status_code, 403)
 
 
@@ -142,3 +142,52 @@ class DashboardTests(LMSTestCase):
         self.login(self.data["a"]["stu"])
         r = self.client.get(reverse("dashboard"))
         self.assertEqual([a.title for a in r.context["due_soon"]], ["HW1"])
+
+
+class PlatformModeTests(LMSTestCase):
+    def setUp(self):
+        self.su = User.objects.create_superuser("root", password=PW)
+        self.login(self.su)
+
+    def test_superuser_redirected_to_picker(self):
+        r = self.client.get(reverse("dashboard"))
+        self.assertRedirects(r, reverse("accounts:switch_school"))
+        r = self.client.get(reverse("accounts:switch_school"))
+        self.assertEqual(len(r.context["schools"]), 2)
+
+    def test_act_as_school_admin_then_exit(self):
+        a = self.data["a"]
+        self.client.post(reverse("accounts:switch_school"), {"school": a["school"].pk})
+        r = self.client.get(reverse("dashboard"))
+        self.assertEqual((r.status_code, r.context["role"], r.context["school"]),
+                         (200, User.ADMIN, a["school"]))
+        r = self.client.get(reverse("accounts:manage_users"))
+        self.assertIn(a["stu"], r.context["users"])
+        self.assertNotIn(self.data["b"]["stu"], r.context["users"])  # still scoped
+        self.client.post(reverse("accounts:exit_school"))
+        self.assertRedirects(self.client.get(reverse("dashboard")), reverse("accounts:switch_school"))
+
+    def test_borrowed_school_and_role_never_saved(self):
+        self.client.post(reverse("accounts:switch_school"), {"school": self.data["a"]["school"].pk})
+        self.client.get(reverse("dashboard"))
+        self.client.get(reverse("accounts:manage_users"))
+        self.su.refresh_from_db()
+        self.assertIsNone(self.su.school_id)
+        self.assertEqual(self.su.role, User.STUDENT)  # default, untouched
+
+    def test_full_save_while_acting_skips_school_role(self):
+        self.su._acting = True
+        self.su.school, self.su.role = self.data["a"]["school"], User.ADMIN
+        self.su.first_name = "Root"
+        self.su.save()
+        fresh = User.objects.get(pk=self.su.pk)
+        self.assertEqual((fresh.first_name, fresh.school_id), ("Root", None))
+
+    def test_regular_users_cannot_use_platform_mode(self):
+        for who in ("admin", "inst", "stu"):
+            self.login(self.data["a"][who])
+            r = self.client.get(reverse("accounts:switch_school"))
+            self.assertEqual(r.status_code, 302)  # bounced to login
+            self.client.post(reverse("accounts:switch_school"), {"school": self.data["b"]["school"].pk})
+            r = self.client.get(reverse("dashboard"))
+            self.assertEqual(r.context["school"], self.data["a"]["school"])  # unchanged
