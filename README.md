@@ -5,7 +5,7 @@
 2. `python -m venv .venv`
 3. `.\.venv\Scripts\Activate.ps1` (Windows) or `source .venv/bin/activate` (Mac/Linux)
 4. `pip install -r requirements.txt`
-5. Copy `.env.example` to `.env` and fill in values
+5. Copy `.env.example` to `.env` (`Copy-Item .env.example .env`). The defaults run locally on SQLite as-is; fill in `SECRET_KEY` before deploying
 6. `python manage.py migrate`
 7. `python manage.py createsuperuser`
 8. `python manage.py seed_demo` (optional demo data)

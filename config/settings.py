@@ -24,11 +24,16 @@ load_dotenv(BASE_DIR / ".env")
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG") == "True"
+
+# SECURITY WARNING: keep the secret key used in production secret!
+# blank key is fine for local dev / tests; production (DEBUG=False) must set one
+SECRET_KEY = os.getenv("SECRET_KEY") or ("dev-insecure-key-change-me" if DEBUG or (len(sys.argv) > 1 and sys.argv[1] == "test") else None)
+if not SECRET_KEY:
+    from django.core.exceptions import ImproperlyConfigured
+    raise ImproperlyConfigured("SECRET_KEY must be set in .env when DEBUG=False")
 
 ALLOWED_HOSTS = [h for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
 CSRF_TRUSTED_ORIGINS = [o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
