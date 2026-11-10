@@ -173,7 +173,17 @@ class PlatformModeTests(LMSTestCase):
         self.client.get(reverse("accounts:manage_users"))
         self.su.refresh_from_db()
         self.assertIsNone(self.su.school_id)
-        self.assertEqual(self.su.role, User.STUDENT)  # default, untouched
+        self.assertEqual(self.su.role, User.PLATFORM)  # untouched
+
+    def test_superuser_gets_platform_role(self):
+        self.assertEqual(self.su.role, User.PLATFORM)
+
+    def test_school_admin_cannot_grant_platform_role(self):
+        self.login(self.data["a"]["admin"])
+        stu = self.data["a"]["stu"]
+        self.client.post(reverse("accounts:change_role", args=[stu.pk]), {"role": "platform"})
+        stu.refresh_from_db()
+        self.assertEqual(stu.role, User.STUDENT)
 
     def test_full_save_while_acting_skips_school_role(self):
         self.su._acting = True

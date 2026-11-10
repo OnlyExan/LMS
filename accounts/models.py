@@ -36,7 +36,9 @@ class School(models.Model):
 
 class User(AbstractUser):
     STUDENT, INSTRUCTOR, ADMIN = "student", "instructor", "admin"
-    ROLE_CHOICES = [(STUDENT, "Student"), (INSTRUCTOR, "Instructor"), (ADMIN, "Admin")]
+    PLATFORM = "platform"  # superusers only — never assignable in-app
+    SCHOOL_ROLES = [(STUDENT, "Student"), (INSTRUCTOR, "Instructor"), (ADMIN, "Admin")]
+    ROLE_CHOICES = SCHOOL_ROLES + [(PLATFORM, "Platform Admin")]
 
     school = models.ForeignKey(
         School, on_delete=models.CASCADE, related_name="members", null=True, blank=True
@@ -44,6 +46,9 @@ class User(AbstractUser):
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=STUDENT)
 
     def save(self, *args, **kwargs):
+        # superusers default to the platform role instead of student
+        if self.is_superuser and self.role == self.STUDENT and not getattr(self, "_acting", False):
+            self.role = self.PLATFORM
         # superuser acting as a school admin: don't persist the borrowed school/role
         if getattr(self, "_acting", False) and self.pk:
             if kwargs.get("update_fields") is None:
@@ -66,7 +71,7 @@ class AdminInvite(models.Model):
     school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="invites")
     email = models.EmailField()
     token = models.CharField(max_length=64, unique=True, default=make_token)
-    role = models.CharField(max_length=20, choices=User.ROLE_CHOICES, default=User.ADMIN)
+    role = models.CharField(max_length=20, choices=User.SCHOOL_ROLES, default=User.ADMIN)
     invited_by = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, related_name="invites_sent"
     )

@@ -72,7 +72,7 @@ class InviteAcceptForm(_BaseUserForm):
 
 
 class RoleChangeForm(forms.Form):
-    role = forms.ChoiceField(choices=User.ROLE_CHOICES)
+    role = forms.ChoiceField(choices=User.SCHOOL_ROLES)  # school admins can't grant platform
 
 
 class SchoolSettingsForm(forms.ModelForm):
