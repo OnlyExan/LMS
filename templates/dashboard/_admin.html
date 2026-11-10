@@ -1,0 +1,44 @@
+{# LSM-88: admin dashboard block. Context: school, student_count, instructor_count, admin_count, course_count, pending_invites #}
+<section class="dash">
+  <header class="dash-header">
+    <div>
+      <h1>{{ school.name }}</h1>
+      <p class="muted">School admin dashboard</p>
+    </div>
+    <div class="join-code">
+      <span class="muted">Student join code</span>
+      <code>{{ school.join_code }}</code>
+    </div>
+  </header>
+
+  <div class="stat-grid">
+    <a class="stat-card" href="{% url 'accounts:manage_users' %}?role=student">
+      <span class="stat-num">{{ student_count }}</span>
+      <span class="stat-label">Student{{ student_count|pluralize }}</span>
+    </a>
+    <a class="stat-card" href="{% url 'accounts:manage_users' %}?role=instructor">
+      <span class="stat-num">{{ instructor_count }}</span>
+      <span class="stat-label">Instructor{{ instructor_count|pluralize }}</span>
+    </a>
+    <a class="stat-card" href="{% url 'accounts:manage_users' %}?role=admin">
+      <span class="stat-num">{{ admin_count }}</span>
+      <span class="stat-label">Admin{{ admin_count|pluralize }}</span>
+    </a>
+    <a class="stat-card" href="{% url 'courses:course_list' %}">
+      <span class="stat-num">{{ course_count }}</span>
+      <span class="stat-label">Course{{ course_count|pluralize }}</span>
+    </a>
+    <a class="stat-card {% if pending_invites %}stat-alert{% endif %}" href="{% url 'accounts:invite_list' %}">
+      <span class="stat-num">{{ pending_invites }}</span>
+      <span class="stat-label">Pending invite{{ pending_invites|pluralize }}</span>
+    </a>
+  </div>
+
+  <h2>Quick actions</h2>
+  <div class="actions">
+    <a class="btn" href="{% url 'accounts:invite_user' %}">Invite instructor / admin</a>
+    <a class="btn" href="{% url 'accounts:manage_users' %}">Manage users</a>
+    <a class="btn" href="{% url 'courses:course_create' %}">New course</a>
+    <a class="btn btn-secondary" href="{% url 'accounts:school_settings' %}">School settings</a>
+  </div>
+</section>

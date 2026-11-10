@@ -1,0 +1,21 @@
+/* dashboard styles — scoped with .dash so they won't clash with the team's main.css */
+.dash { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; font-family: system-ui, sans-serif; color: #1f2933; }
+.dash h1 { margin: 0; }
+.dash h2 { margin-top: 2rem; font-size: 1.1rem; }
+.dash .muted { color: #6b7280; margin: 0.25rem 0 0; font-size: 0.9rem; }
+
+.dash-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+.join-code { text-align: right; }
+.join-code code { display: block; font-size: 1.4rem; font-weight: 700; letter-spacing: 0.1em; background: #eef2ff; padding: 0.3rem 0.8rem; border-radius: 6px; }
+
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.stat-card { display: flex; flex-direction: column; padding: 1.25rem; border: 1px solid #e5e7eb; border-radius: 10px; background: #fff; text-decoration: none; color: inherit; transition: box-shadow .15s, transform .15s; }
+.stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); transform: translateY(-2px); }
+.stat-num { font-size: 2rem; font-weight: 700; }
+.stat-label { color: #6b7280; }
+.stat-alert { border-color: #f59e0b; background: #fffbeb; }
+
+.actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.btn { padding: 0.55rem 1rem; border-radius: 6px; background: #2563eb; color: #fff; text-decoration: none; font-size: 0.95rem; }
+.btn:hover { filter: brightness(1.1); }
+.btn-secondary { background: #e5e7eb; color: #1f2933; }

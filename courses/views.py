@@ -97,13 +97,12 @@ def course_edit(request, pk):
 
 
 @instructor_required
+@require_POST  # confirmed client-side with a JS confirm() pop-up
 def course_delete(request, pk):
     course = get_managed_course(request, pk)
-    if request.method == "POST":
-        course.delete()
-        messages.success(request, f"{course.code} deleted.")
-        return redirect("courses:course_list")
-    return render(request, "courses/course_confirm_delete.html", {"course": course})
+    course.delete()
+    messages.success(request, f"{course.code} deleted.")
+    return redirect("courses:course_list")
 
 
 @student_required

@@ -5,6 +5,7 @@ from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from accounts.decorators import instructor_required, school_member_required, student_required
 from accounts.models import User
@@ -104,15 +105,13 @@ def assignment_edit(request, pk):
 
 
 @instructor_required
+@require_POST  # confirmed client-side with a JS confirm() pop-up
 def assignment_delete(request, pk):
     assignment = _get_managed_assignment(request, pk)
-    if request.method == "POST":
-        course_pk = assignment.course_id
-        assignment.delete()
-        messages.success(request, "Assignment deleted.")
-        return redirect("courses:course_detail", pk=course_pk)
-    return render(request, "assignments/assignment_confirm_delete.html",
-                  {"assignment": assignment})
+    course_pk = assignment.course_id
+    assignment.delete()
+    messages.success(request, "Assignment deleted.")
+    return redirect("courses:course_detail", pk=course_pk)
 
 
 @school_member_required

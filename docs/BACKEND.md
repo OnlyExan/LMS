@@ -6,7 +6,14 @@ Frontend just needs to create the templates below. Every template should `{% ext
 > Folder note: templates go in `templates/assignments/` — the existing `templates/assigments/` folder is misspelled, rename it.
 
 ## Rules
-- **POST-only actions** (use a `<form method="post">` with `{% csrf_token %}`): logout, enroll, drop, revoke invite, change role, toggle active, and confirming deletes.
+- **POST-only actions** (use a `<form method="post">` with `{% csrf_token %}`): logout, enroll, drop, revoke invite, change role, toggle active, delete course, delete assignment.
+- **Delete buttons** use a browser pop-up instead of a confirm page:
+  ```html
+  <form method="post" action="{% url 'courses:course_delete' course.pk %}"
+        onsubmit="return confirm('Delete {{ course.code }}? This removes all its assignments, submissions and grades.');">
+    {% csrf_token %}<button>Delete course</button>
+  </form>
+  ```
 - Forms: `{{ form.as_p }}` works for everything. Submit forms with file uploads need `enctype="multipart/form-data"`.
 - Flash messages: loop `{% for m in messages %}` in `base.html`.
 - Role checks in templates: `user.role` is `"student"`, `"instructor"`, or `"admin"`.
@@ -50,7 +57,7 @@ Always: `role`, `school`.
 | `courses:course_detail` | `/courses/<pk>/` | `courses/course_detail.html` | `course`, `enrollment`, `is_enrolled`, `can_manage`, `assignments` |
 | `courses:course_create` | `/courses/new/` | `courses/course_form.html` | `form`, `course=None` |
 | `courses:course_edit` | `/courses/<pk>/edit/` | `courses/course_form.html` | `form`, `course` |
-| `courses:course_delete` | `/courses/<pk>/delete/` | `courses/course_confirm_delete.html` | `course` (POST to confirm) |
+| `courses:course_delete` | `/courses/<pk>/delete/` | POST only (button + `confirm()` pop-up on course detail) | |
 | `courses:enroll` / `courses:drop` | `/courses/<pk>/enroll/`, `/drop/` | POST only (students) | |
 | `courses:roster` | `/courses/<pk>/roster/` | `courses/roster.html` | `course`, `enrollments` (`.student .status`) |
 
@@ -61,7 +68,7 @@ Always: `role`, `school`.
 | `assignments:assignment_list` | `/assignments/` | `assignments/assignment_list.html` | `assignments`, `submitted_ids`, `courses`, `filters`; GET `?course=&q=&due_after=YYYY-MM-DD&due_before=&upcoming=1` |
 | `assignments:assignment_create` | `/assignments/course/<course_pk>/new/` | `assignments/assignment_form.html` | `form`, `course`, `assignment=None` |
 | `assignments:assignment_edit` | `/assignments/<pk>/edit/` | `assignments/assignment_form.html` | `form`, `course`, `assignment` |
-| `assignments:assignment_delete` | `/assignments/<pk>/delete/` | `assignments/assignment_confirm_delete.html` | `assignment` |
+| `assignments:assignment_delete` | `/assignments/<pk>/delete/` | POST only (button + `confirm()` pop-up on assignment detail) | |
 | `assignments:assignment_detail` | `/assignments/<pk>/` | `assignments/assignment_detail.html` | `assignment`, `course`, `is_past_due` + **student:** `submission`, `versions`, `grade`, `can_submit` · **instructor/admin:** `submissions`, `submission_count`, `ungraded_count`, `enrolled_count` |
 | `assignments:submit` | `/assignments/<pk>/submit/` | `assignments/submit.html` | `form` (response_text, file_upload), `assignment`, `submission` (existing, can resubmit until graded) |
 | `assignments:submission_list` | `/assignments/submissions/` | `assignments/submission_list.html` | `submissions` (`.student .assignment .is_late .grade`), `status`, `filters`; GET `?status=ungraded|graded|all&course=&q=` |

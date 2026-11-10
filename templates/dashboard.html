@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Dashboard{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+
+{% block content %}
+  {# one partial per role so teammates don't edit the same file #}
+  {% if role == "admin" %}
+    {% include "dashboard/_admin.html" %}
+  {% elif role == "instructor" %}
+    {% include "dashboard/_instructor.html" %}
+  {% else %}
+    {% include "dashboard/_student.html" %}
+  {% endif %}
+{% endblock %}

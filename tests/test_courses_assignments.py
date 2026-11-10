@@ -92,6 +92,26 @@ class CourseViewTests(LMSTestCase):
         r = self.client.get(reverse("courses:course_list"), {"q": "zzz"})
         self.assertEqual(len(r.context["courses"]), 0)
 
+    def test_delete_is_post_only_and_owner_only(self):
+        a = self.data["a"]
+        url = reverse("courses:course_delete", args=[a["course"].pk])
+        self.login(a["inst"])
+        self.assertEqual(self.client.get(url).status_code, 405)  # GET never deletes
+        other = User.objects.create_user("inst_a3", password=PW, school=a["school"], role=User.INSTRUCTOR)
+        self.login(other)
+        self.assertEqual(self.client.post(url).status_code, 403)
+        self.login(a["inst"])
+        self.assertRedirects(self.client.post(url), reverse("courses:course_list"))
+        self.assertFalse(Course.objects.filter(pk=a["course"].pk).exists())
+
+    def test_assignment_delete_post_only(self):
+        a = self.data["a"]
+        url = reverse("assignments:assignment_delete", args=[a["asg"].pk])
+        self.login(a["inst"])
+        self.assertEqual(self.client.get(url).status_code, 405)
+        self.client.post(url)
+        self.assertFalse(Assignment.objects.filter(pk=a["asg"].pk).exists())
+
     def test_roster(self):
         self.login(self.data["a"]["inst"])
         r = self.client.get(reverse("courses:roster", args=[self.data["a"]["course"].pk]))
