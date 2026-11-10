@@ -30,6 +30,7 @@ SECRET_KEY = os.getenv("SECRET_KEY")
 DEBUG = os.getenv("DEBUG") == "True"
 
 ALLOWED_HOSTS = [h for h in os.getenv("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",") if h]
+CSRF_TRUSTED_ORIGINS = [o for o in os.getenv("CSRF_TRUSTED_ORIGINS", "").split(",") if o]
 
 
 # Application definition
@@ -91,8 +92,11 @@ if os.getenv("POSTGRES_DB"):
             "PASSWORD": os.getenv("POSTGRES_PASSWORD", ""),
             "HOST": os.getenv("POSTGRES_HOST", "localhost"),
             "PORT": os.getenv("POSTGRES_PORT", "5432"),
+            "CONN_MAX_AGE": 0,                      # serverless: no persistent conns
+            "OPTIONS": {"sslmode": "require"},      # Supabase requires SSL
         }
     }
+    DISABLE_SERVER_SIDE_CURSORS = True  # needed for Supabase pooler (transaction mode)
 else:
     DATABASES = {
         "default": {
@@ -151,3 +155,24 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# uploads -> Supabase Storage when configured, local disk otherwise
+if os.getenv("SUPABASE_S3_BUCKET"):
+    STORAGES = {
+        "default": {
+            "BACKEND": "storages.backends.s3.S3Storage",
+            "OPTIONS": {
+                "bucket_name": os.getenv("SUPABASE_S3_BUCKET"),
+                "endpoint_url": os.getenv("SUPABASE_S3_ENDPOINT"),
+                "access_key": os.getenv("SUPABASE_S3_ACCESS_KEY"),
+                "secret_key": os.getenv("SUPABASE_S3_SECRET_KEY"),
+                "region_name": os.getenv("SUPABASE_S3_REGION"),
+                "addressing_style": "path",   # Supabase needs path-style
+                "querystring_auth": True,     # private bucket, signed URLs
+                "file_overwrite": False,
+            },
+        },
+        "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+    }
