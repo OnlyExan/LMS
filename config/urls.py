@@ -18,10 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from accounts.views import dashboard
+from accounts.views import dashboard, login_page, create_admin_page
 
 urlpatterns = [
-    path("", dashboard, name="dashboard"),
+    path("", login_page, name="login"),
+    path("create-admin/", create_admin_page, name="create_admin"),
+    path("dashboard/", dashboard, name="dashboard"),
     path('admin/', admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("courses/", include("courses.urls")),
