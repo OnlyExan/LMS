@@ -226,11 +226,6 @@ def exit_school(request):
 from django.shortcuts import render
 
 
-# Display the LMS login page
-def login_page(request):
-    return render(request, "login.html")
-
-
 # Display the admin creation page
 def create_admin_page(request):
-    return render(request, "createadmin.html")
+    return render(request, "accounts/createadmin.html")

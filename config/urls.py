@@ -18,10 +18,11 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from accounts.views import dashboard, login_page, create_admin_page
+from accounts.views import dashboard, create_admin_page
+from django.views.generic import RedirectView
 
 urlpatterns = [
-    path("", login_page, name="login"),
+    path("", RedirectView.as_view(pattern_name="dashboard"), name="home"),
     path("create-admin/", create_admin_page, name="create_admin"),
     path("dashboard/", dashboard, name="dashboard"),
     path('admin/', admin.site.urls),

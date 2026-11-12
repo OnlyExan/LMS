@@ -24,34 +24,21 @@
   </div>
 
   <!-- Login Form -->
-  <form id="loginForm">
+  <form method="post">
+    {% csrf_token %}
 
     <div class="input-group">
-      <input
-        type="email"
-        id="email"
-        name="email"
-        placeholder=" "
-        required
-      >
-      <label for="email">Email</label>
+      <input type="text" id="username" name="username" placeholder=" " required>
+      <label for="username">Username or Email</label>
     </div>
 
     <div class="input-group">
-      <input
-        type="password"
-        id="password"
-        name="password"
-        placeholder=" "
-        required
-      >
+      <input type="password" id="password" name="password" placeholder=" " required>
       <label for="password">Password</label>
     </div>
 
     <!-- Login Button -->
-    <button type="submit" class="login-button">
-      Log In
-    </button>
+    <button type="submit" class="login-button">Log In</button>
 
   </form>
 
@@ -66,7 +53,6 @@
 
 </main>
 
-<!-- External JavaScript -->
-<script src="{% static 'js/login.js' %}"></script>
+
 </body>
 </html>
