@@ -26,6 +26,10 @@
   <!-- Login Form -->
   <form method="post">
     {% csrf_token %}
+    
+    {% if form.errors %}
+    <p class="error">Invalid username/email or password.</p>
+    {% endif %}
 
     <div class="input-group">
       <input type="text" id="username" name="username" placeholder=" " required>

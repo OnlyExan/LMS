@@ -222,9 +222,6 @@ def exit_school(request):
     request.session.pop(SESSION_KEY, None)
     return redirect("accounts:switch_school")
 
-# So Django knows which page to display when the user navigates to a url
-from django.shortcuts import render
-
 
 # Display the admin creation page
 def create_admin_page(request):
