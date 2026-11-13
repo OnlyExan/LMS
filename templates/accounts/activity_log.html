@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Activity{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div>
+      <h1>Admin</h1>
+      <p class="muted">{{ page.paginator.count }} event{{ page.paginator.count|pluralize }}{% if action %} · filtered{% endif %}{% if q %} · matching “{{ q }}”{% endif %}</p>
+    </div>
+  </div>
+
+  {% include "accounts/_admin_tabs.html" %}
+
+  <form method="get" class="toolbar">
+    <select name="action" class="role-select filter-select" onchange="this.form.submit()">
+      <option value="">All actions</option>
+      {% for val, label in action_choices %}<option value="{{ val }}" {% if action == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <div class="search">
+      <input type="search" name="q" value="{{ q }}" placeholder="Search person, email or details…">
+      <button class="btn-outline">Search</button>
+    </div>
+  </form>
+
+  <div class="table-card">
+    <ul class="activity-list">
+      {% for log in page %}{% include "accounts/_activity_item.html" %}
+      {% empty %}
+        <li class="empty-row">No activity yet{% if action or q %} — <a href="?">clear filters</a>{% else %}. Role changes, invites and settings changes will show up here.{% endif %}</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  {% if page.paginator.num_pages > 1 %}
+  {% with qs="&"|add:filter_qs %}
+  <nav class="pager">
+    <span class="muted small">Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span>
+    <div class="pager-links">
+      {% if page.has_previous %}<a href="?page=1{{ qs }}">« First</a><a href="?page={{ page.previous_page_number }}{{ qs }}">‹ Prev</a>
+      {% else %}<span class="disabled">« First</span><span class="disabled">‹ Prev</span>{% endif %}
+      <span class="current">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}<a href="?page={{ page.next_page_number }}{{ qs }}">Next ›</a><a href="?page={{ page.paginator.num_pages }}{{ qs }}">Last »</a>
+      {% else %}<span class="disabled">Next ›</span><span class="disabled">Last »</span>{% endif %}
+    </div>
+  </nav>
+  {% endwith %}
+  {% endif %}
+</div>
+{% endblock %}

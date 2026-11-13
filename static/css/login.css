@@ -1,0 +1,155 @@
+
+/* General Page Styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, Helvetica, sans-serif;
+    background-color: #f4f6f9;
+    min-height: 100vh;
+}
+
+/* Center Login Container */
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+}
+
+/* Login Card */
+.login-card {
+    background-color: #ffffff;
+    width: 100%;
+    max-width: 400px;
+    padding: 45px 35px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+}
+
+/* LMS Logo */
+.logo {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.logo-text {
+    font-size: 36px;
+    font-weight: 800;
+    letter-spacing: 3px;
+    color: #2563eb;
+}
+
+/* Input Fields */
+.input-group {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.input-group input {
+    width: 100%;
+    height: 55px;
+    padding: 15px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    font-size: 15px;
+    outline: none;
+    background: transparent;
+    transition: border-color 0.2s;
+}
+
+/* Floating Input Labels */
+.input-group label {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888888;
+    font-size: 14px;
+    pointer-events: none;
+    transition: 0.2s ease;
+    background-color: white;
+    padding: 0 4px;
+}
+
+/* Focus and Filled Input Effects */
+.input-group input:focus,
+.input-group input:valid {
+    border-color: #2563eb;
+}
+
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+    top: 0;
+    font-size: 12px;
+    color: #2563eb;
+}
+
+/* Login Button */
+.login-button {
+    width: 100%;
+    height: 50px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 7px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.login-button:hover {
+    background-color: #1d4ed8;
+}
+
+/* Create Admin Link */
+.admin-link {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.admin-link a {
+    color: #6b7280;
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.admin-link a:hover {
+    color: #2563eb;
+    text-decoration: underline;
+}
+
+.error {
+    color: #dc2626;
+    font-size: 14px;
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+/* invite pages */
+.invite-header { text-align: center; margin-bottom: 28px; }
+.invite-header h1 { font-size: 22px; color: #111827; margin: 14px 0 8px; }
+.sub { color: #6b7280; font-size: 14px; line-height: 1.5; }
+.sub.small { font-size: 12px; margin-top: 4px; }
+.school-logo { max-height: 64px; max-width: 200px; object-fit: contain; }
+.school-initials { width: 64px; height: 64px; margin: 0 auto; border-radius: 14px; background: var(--brand, #2563eb); color: #fff; display: grid; place-items: center; font-size: 22px; font-weight: 800; letter-spacing: 1px; }
+.role-badge { display: inline-block; padding: 2px 10px; border-radius: 999px; background: #eef2ff; color: var(--brand, #2563eb); font-weight: 700; font-size: 13px; }
+.brand-button { background-color: var(--brand, #2563eb); }
+.brand-button:hover { background-color: color-mix(in srgb, var(--brand, #2563eb) 82%, black); }
+.field-err { color: #dc2626; font-size: 12px; margin: -18px 0 18px; }
+.status-icon { width: 56px; height: 56px; margin: 0 auto; border-radius: 50%; display: grid; place-items: center; font-size: 26px; font-weight: 800; background: #fef3c7; color: #b45309; }
+.link-button { display: flex; align-items: center; justify-content: center; text-decoration: none; margin-top: 24px; }
+.link-button.secondary { background: #fff; color: #374151; border: 1px solid #d1d5db; }
+.link-button.secondary:hover { background: #f9fafb; }
+
+/* register page */
+.invite-header .logo { margin-bottom: 0; }
+.code-input { font-family: ui-monospace, Consolas, monospace; font-size: 20px !important; font-weight: 700; letter-spacing: 4px; text-transform: uppercase; }
+.center-note { text-align: center; margin-top: 12px; }
+.admin-link .dot { color: #d1d5db; margin: 0 6px; font-size: 12px; }
+.status-icon.done { background: #dcfce7; color: #166534; }

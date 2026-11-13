@@ -1,5 +1,9 @@
 import secrets
 from datetime import timedelta
+from zoneinfo import available_timezones
+
+from django.core.exceptions import ValidationError
+from django.core.validators import RegexValidator
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.utils import timezone
@@ -14,11 +18,36 @@ def make_join_code():
     return secrets.token_hex(4).upper()
 
 
+# common zones first in the settings dropdown; any valid IANA name is accepted
+COMMON_TIMEZONES = [
+    "America/Los_Angeles", "America/Denver", "America/Phoenix", "America/Chicago",
+    "America/New_York", "America/Anchorage", "Pacific/Honolulu", "UTC",
+]
+TIMEZONE_CHOICES = [(z, z.replace("_", " ")) for z in COMMON_TIMEZONES] + [
+    (z, z.replace("_", " ")) for z in sorted(available_timezones()) if z not in COMMON_TIMEZONES
+]
+INVITE_EXPIRY_CHOICES = [(1, "1 day"), (3, "3 days"), (7, "7 days"), (14, "14 days"), (30, "30 days")]
+def valid_timezone(value):
+    if value not in available_timezones():
+        raise ValidationError(f"{value} is not a valid time zone.")
+
+
+hex_color = RegexValidator(r"^#[0-9a-fA-F]{6}$", "Use a hex color like #2563eb.")
+
+
 class School(models.Model):
     name = models.CharField(max_length=200)
     slug = models.SlugField(unique=True)
     join_code = models.CharField(max_length=12, unique=True, default=make_join_code)
     created_at = models.DateTimeField(auto_now_add=True)
+
+    # admin settings
+    logo = models.ImageField(upload_to="school_logos/", blank=True)
+    brand_color = models.CharField(max_length=7, default="#2563eb", validators=[hex_color])
+    allow_self_signup = models.BooleanField(default=True)  # off = invite-only
+    invite_expiry_days = models.PositiveSmallIntegerField(choices=INVITE_EXPIRY_CHOICES, default=7)
+    # choices live on the form (tzdata changes would otherwise churn migrations)
+    timezone = models.CharField(max_length=64, default="America/Los_Angeles", validators=[valid_timezone])
 
     def save(self, *args, **kwargs):
         # auto unique slug from name
@@ -81,7 +110,7 @@ class AdminInvite(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
-            self.expires_at = timezone.now() + timedelta(days=7)
+            self.expires_at = timezone.now() + timedelta(days=self.school.invite_expiry_days)
         super().save(*args, **kwargs)
 
     def revoke(self):
@@ -94,3 +123,32 @@ class AdminInvite(models.Model):
 
     def __str__(self):
         return f"Invite {self.email} -> {self.school} ({self.role})"
+
+
+class AuditLog(models.Model):
+    """Who did what in a school's admin area. Labels are snapshots so entries survive user deletes."""
+    ROLE_CHANGED, ACTIVATED, DEACTIVATED, USER_EDITED = "role_changed", "activated", "deactivated", "user_edited"
+    PASSWORD_LINK, INVITE_SENT, INVITE_REVOKED = "password_link", "invite_sent", "invite_revoked"
+    SETTINGS_CHANGED, JOIN_CODE_RESET = "settings_changed", "join_code_reset"
+    ACTION_CHOICES = [
+        (ROLE_CHANGED, "Role changed"), (ACTIVATED, "Reactivated"), (DEACTIVATED, "Deactivated"),
+        (USER_EDITED, "User edited"), (PASSWORD_LINK, "Password reset link"),
+        (INVITE_SENT, "Invite sent"), (INVITE_REVOKED, "Invite revoked"),
+        (SETTINGS_CHANGED, "Settings changed"), (JOIN_CODE_RESET, "Join code regenerated"),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="audit_logs")
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="audit_actions")
+    actor_label = models.CharField(max_length=150)
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES)
+    target_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="audit_entries")
+    target_label = models.CharField(max_length=254, blank=True)  # username or email at the time
+    details = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.actor_label} {self.action} {self.target_label}"

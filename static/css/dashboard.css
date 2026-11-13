@@ -16,6 +16,6 @@
 .stat-alert { border-color: #f59e0b; background: #fffbeb; }
 
 .actions { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.btn { padding: 0.55rem 1rem; border-radius: 6px; background: #2563eb; color: #fff; text-decoration: none; font-size: 0.95rem; }
+.btn { padding: 0.55rem 1rem; border-radius: 6px; background: var(--brand); color: #fff; text-decoration: none; font-size: 0.95rem; }
 .btn:hover { filter: brightness(1.1); }
 .btn-secondary { background: #e5e7eb; color: #1f2933; }

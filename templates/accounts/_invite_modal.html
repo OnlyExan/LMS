@@ -1,0 +1,36 @@
+{# quick single invite — included once in base.html for school admins; open with any [data-open-invite] #}
+<dialog id="inviteModal" class="modal">
+  <form method="post" action="{% url 'accounts:invite_user' %}" class="modal-body">
+    {% csrf_token %}
+    <input type="hidden" name="mode" value="single">
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+
+    <div class="modal-head">
+      <h2>Invite someone</h2>
+      <button type="button" class="modal-close" aria-label="Close" onclick="this.closest('dialog').close()">&times;</button>
+    </div>
+    <p class="muted">They'll get a sign-up link that expires in 7 days. You'll see the link at the top of the page after sending.</p>
+
+    <label class="field">
+      <span>Email</span>
+      <input type="email" name="email" required placeholder="name@school.edu" autocomplete="off">
+    </label>
+
+    <label class="field">
+      <span>Role</span>
+      <select name="role">
+        <option value="student">Student</option>
+        <option value="instructor" selected>Instructor</option>
+        <option value="admin">Admin</option>
+      </select>
+    </label>
+
+    <div class="modal-foot">
+      <a href="{% url 'accounts:invite_user' %}?mode=bulk" class="link-muted">Invite several at once →</a>
+      <div>
+        <button type="button" class="btn-outline" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="submit" class="btn-primary">Create invite</button>
+      </div>
+    </div>
+  </form>
+</dialog>

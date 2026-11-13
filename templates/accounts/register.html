@@ -1,0 +1,59 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS | Student Sign Up</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+<main class="login-container">
+  <div class="login-card">
+    <div class="invite-header">
+      <div class="logo"><span class="logo-text">LMS</span></div>
+      <h1>Student sign up</h1>
+      <p class="sub">Enter the join code from your school to create your account.</p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for e in form.non_field_errors %}<p class="error">{{ e }}</p>{% endfor %}
+
+      {# join code first and styled bigger — it's the part people get wrong #}
+      <div class="input-group">
+        <input type="text" id="id_join_code" name="join_code" class="code-input"
+               value="{{ form.join_code.value|default:'' }}" placeholder=" " required
+               maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false">
+        <label for="id_join_code">Join code</label>
+      </div>
+      {% for e in form.join_code.errors %}<p class="field-err">{{ e }}</p>{% endfor %}
+
+      {% for field in form %}{% if field.name != "join_code" %}
+        <div class="input-group">
+          <input type="{{ field.field.widget.input_type|default:'text' }}" id="{{ field.id_for_label }}"
+                 name="{{ field.html_name }}"
+                 value="{% if field.field.widget.input_type != 'password' %}{{ field.value|default:'' }}{% endif %}"
+                 placeholder=" " {% if field.field.required %}required{% endif %}>
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        </div>
+        {% for e in field.errors %}<p class="field-err">{{ e }}</p>{% endfor %}
+      {% endif %}{% endfor %}
+
+      <button type="submit" class="login-button">Create account</button>
+    </form>
+
+    <div class="admin-link">
+      <a href="{% url 'accounts:login' %}">Already have an account? Log in</a>
+    </div>
+    <p class="sub small center-note">Teachers and admins: use the invite link your school sent you.</p>
+  </div>
+</main>
+
+<script>
+  // uppercase the code as they type
+  const code = document.getElementById("id_join_code");
+  code.addEventListener("input", () => { const p = code.selectionStart; code.value = code.value.toUpperCase(); code.setSelectionRange(p, p); });
+</script>
+</body>
+</html>

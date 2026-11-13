@@ -1,0 +1,14 @@
+{# one log row; context: log #}
+<li class="activity-item">
+  <span class="activity-dot dot-{{ log.action }}"></span>
+  <div class="activity-body">
+    <div>
+      <strong>{{ log.actor_label }}</strong>
+      <span class="activity-verb">{{ log.get_action_display|lower }}</span>
+      {% if log.target_user %}<a href="{% url 'accounts:user_detail' log.target_user.pk %}" class="user-link"><strong>@{{ log.target_label }}</strong></a>
+      {% elif log.target_label %}<strong>{{ log.target_label }}</strong>{% endif %}
+      {% if log.details %}<span class="muted small">· {{ log.details }}</span>{% endif %}
+    </div>
+    <span class="muted small" title="{{ log.created_at|date:'M j, Y g:i:s A' }}">{{ log.created_at|timesince }} ago · {{ log.created_at|date:"M j, g:i A" }}</span>
+  </div>
+</li>

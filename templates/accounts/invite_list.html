@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Invites{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div>
+      <h1>Admin</h1>
+      <p class="muted">{{ active|length }} pending invite{{ active|length|pluralize }}{% if expired %} · {{ expired|length }} expired{% endif %}</p>
+    </div>
+    <div class="header-actions">
+      <a class="btn-outline" href="{% url 'accounts:invite_user' %}?mode=bulk">Bulk invite</a>
+      <a class="btn-primary" href="{% url 'accounts:invite_user' %}" data-open-invite>+ Invite user</a>
+    </div>
+  </div>
+
+  {% include "accounts/_admin_tabs.html" %}
+
+  {# client-side filter; both lists are already on the page #}
+  <div class="toolbar">
+    <div class="chips">
+      <button type="button" class="chip active" data-filter="active">Pending ({{ active|length }})</button>
+      <button type="button" class="chip" data-filter="expired">Expired ({{ expired|length }})</button>
+    </div>
+    {% if active %}
+    <button type="button" class="btn-outline btn-sm" onclick="copyAll(this)">Copy all pending links</button>
+    {% endif %}
+  </div>
+
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>Email</th><th>Role</th><th>Invited by</th><th>Expires</th><th>Link</th><th></th></tr>
+      </thead>
+
+      <tbody data-list="active">
+      {% for inv in active %}
+        <tr data-email="{{ inv.email }}" data-link="{{ inv.link }}">
+          <td><strong>{{ inv.email }}</strong><div class="muted small">sent {{ inv.created_at|date:"M j, g:i A" }}</div></td>
+          <td><span class="role-pill role-{{ inv.role }}">{{ inv.get_role_display }}</span></td>
+          <td>{% if inv.invited_by %}{{ inv.invited_by.get_full_name|default:inv.invited_by.username }}{% else %}—{% endif %}</td>
+          <td>
+            <span>in {{ inv.expires_at|timeuntil }}</span>
+            <div class="muted small">{{ inv.expires_at|date:"M j, g:i A" }}</div>
+          </td>
+          <td>
+            <div class="link-cell">
+              <input type="text" value="{{ inv.link }}" readonly onclick="this.select()">
+              <button type="button" class="btn-outline btn-sm" onclick="copyLink(this, '{{ inv.link|escapejs }}')">Copy</button>
+            </div>
+          </td>
+          <td class="actions-cell">
+            <form method="post" action="{% url 'accounts:revoke_invite' inv.pk %}"
+                  onsubmit="return confirm('Revoke the invite for {{ inv.email|escapejs }}? The link will stop working.');">
+              {% csrf_token %}<button class="btn-outline btn-sm btn-danger-outline">Revoke</button>
+            </form>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty-row">No pending invites. <a href="{% url 'accounts:invite_user' %}" data-open-invite>Invite someone</a>.</td></tr>
+      {% endfor %}
+      </tbody>
+
+      <tbody data-list="expired" hidden>
+      {% for inv in expired %}
+        <tr class="row-inactive">
+          <td><strong>{{ inv.email }}</strong><div class="muted small">sent {{ inv.created_at|date:"M j, g:i A" }}</div></td>
+          <td><span class="role-pill role-{{ inv.role }}">{{ inv.get_role_display }}</span></td>
+          <td>{% if inv.invited_by %}{{ inv.invited_by.get_full_name|default:inv.invited_by.username }}{% else %}—{% endif %}</td>
+          <td><span class="status status-off">Expired / revoked</span><div class="muted small">{{ inv.expires_at|date:"M j, g:i A" }}</div></td>
+          <td class="muted small">Link no longer works</td>
+          <td class="actions-cell">
+            {# re-invite: opens the pop-up with this email + role filled in #}
+            <a href="{% url 'accounts:invite_user' %}" class="btn-outline btn-sm" data-open-invite
+               data-email="{{ inv.email }}" data-role="{{ inv.role }}">Re-invite</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty-row">No expired invites.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small footnote">We don't send email yet — copy each link and send it yourself. Accepted invites disappear from this list; the person shows up under Users.</p>
+</div>
+
+<script>
+  // pending / expired chips
+  document.querySelectorAll("[data-filter]").forEach(chip => chip.addEventListener("click", () => {
+    document.querySelectorAll("[data-filter]").forEach(c => c.classList.toggle("active", c === chip));
+    document.querySelectorAll("[data-list]").forEach(t => t.hidden = t.dataset.list !== chip.dataset.filter);
+  }));
+
+  function flash(btn, text) {
+    const old = btn.textContent; btn.textContent = text; setTimeout(() => btn.textContent = old, 1500);
+  }
+  function copyLink(btn, link) {
+    navigator.clipboard.writeText(link).then(() => flash(btn, "Copied!"));
+  }
+  // "email: link" per line — paste straight into an email or spreadsheet
+  function copyAll(btn) {
+    const lines = [...document.querySelectorAll("tbody[data-list=active] tr[data-link]")]
+      .map(r => `${r.dataset.email}: ${r.dataset.link}`);
+    navigator.clipboard.writeText(lines.join("\n")).then(() => flash(btn, `Copied ${lines.length}!`));
+  }
+</script>
+{% endblock %}

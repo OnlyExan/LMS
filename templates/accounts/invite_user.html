@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Invite Users{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page narrow">
+  <div class="admin-header">
+    <div>
+      <h1>Invite Users</h1>
+      <p class="muted">Send sign-up links to students, instructors or admins. Students can also join on their own with the code <code>{{ request.user.school.join_code }}</code>.</p>
+    </div>
+    <a class="btn-outline" href="{% url 'accounts:invite_list' %}">View pending invites</a>
+  </div>
+
+  {% include "accounts/_admin_tabs.html" %}
+
+  {# tabs: ?mode=bulk opens the bulk tab; a failed POST reopens whichever tab was used #}
+  {% with active=request.GET.mode|default:mode %}
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab{% if active != 'bulk' %} active{% endif %}" data-tab="single">Single invite</button>
+    <button type="button" class="tab{% if active == 'bulk' %} active{% endif %}" data-tab="bulk">Bulk invite</button>
+  </div>
+
+  <div class="panel" data-panel="single"{% if active == 'bulk' %} hidden{% endif %}>
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <input type="hidden" name="mode" value="single">
+      {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+
+      <label class="field">
+        <span>Email</span>
+        <input type="email" name="email" value="{{ form.email.value|default:'' }}" required placeholder="name@school.edu" autocomplete="off">
+        {% for e in form.email.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </label>
+
+      <label class="field">
+        <span>Role</span>
+        <select name="role">
+          <option value="student" {% if form.role.value == 'student' %}selected{% endif %}>Student — can enroll in courses and submit work</option>
+          <option value="instructor" {% if not form.role.value or form.role.value == 'instructor' %}selected{% endif %}>Instructor — can create and teach courses</option>
+          <option value="admin" {% if form.role.value == 'admin' %}selected{% endif %}>Admin — full control of this school</option>
+        </select>
+      </label>
+      {% for e in form.non_field_errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+
+      <div class="form-foot">
+        <span class="muted small">Link expires in 7 days and works once.</span>
+        <button class="btn-primary">Create invite</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="panel" data-panel="bulk"{% if active != 'bulk' %} hidden{% endif %}>
+    <form method="post" class="form-card">
+      {% csrf_token %}
+      <input type="hidden" name="mode" value="bulk">
+
+      <label class="field">
+        <span>Emails <span class="muted small" id="emailCount"></span></span>
+        <textarea name="emails" id="bulkEmails" placeholder="one@school.edu&#10;two@school.edu, three@school.edu" required>{{ bulk_form.emails.value|default:'' }}</textarea>
+        <span class="muted small">Separate with new lines, commas or spaces. Up to {{ max_bulk }} at a time. Existing members and people with a pending invite are skipped.</span>
+        {% for e in bulk_form.emails.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </label>
+
+      <label class="field">
+        <span>Role for everyone</span>
+        <select name="role">
+          <option value="student" {% if not bulk_form.role.value or bulk_form.role.value == 'student' %}selected{% endif %}>Student</option>
+          <option value="instructor" {% if bulk_form.role.value == 'instructor' %}selected{% endif %}>Instructor</option>
+          <option value="admin" {% if bulk_form.role.value == 'admin' %}selected{% endif %}>Admin</option>
+        </select>
+      </label>
+
+      <div class="form-foot">
+        <span class="muted small">Links show up on the pending invites list to copy.</span>
+        <button class="btn-primary">Create invites</button>
+      </div>
+    </form>
+  </div>
+  {% endwith %}
+</div>
+
+<script>
+  // tab switching
+  document.querySelectorAll(".tab").forEach(btn => btn.addEventListener("click", () => {
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b === btn));
+    document.querySelectorAll(".panel").forEach(p => p.hidden = p.dataset.panel !== btn.dataset.tab);
+  }));
+
+  // live email count for bulk
+  const box = document.getElementById("bulkEmails"), count = document.getElementById("emailCount");
+  function updateCount() {
+    const n = new Set(box.value.split(/[\s,;]+/).map(s => s.trim().toLowerCase()).filter(Boolean)).size;
+    count.textContent = n ? `(${n})` : "";
+  }
+  box.addEventListener("input", updateCount); updateCount();
+</script>
+{% endblock %}

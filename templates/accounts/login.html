@@ -1,0 +1,64 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>LMS | Login</title>
+  
+  <!-- External CSS -->
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+
+<body>
+
+  <main class = "login-container">
+    
+  <div class="login-card">
+
+  <!-- LMS Logo -->
+  <div class="logo">
+    <span class="logo-text">LMS</span>
+  </div>
+
+  <!-- Login Form -->
+  <form method="post">
+    {% csrf_token %}
+    
+    {% if form.errors %}
+    <p class="error">Invalid username/email or password.</p>
+    {% endif %}
+
+    <div class="input-group">
+      <input type="text" id="username" name="username" placeholder=" " required>
+      <label for="username">Username or Email</label>
+    </div>
+
+    <div class="input-group">
+      <input type="password" id="password" name="password" placeholder=" " required>
+      <label for="password">Password</label>
+    </div>
+
+    <!-- Login Button -->
+    <button type="submit" class="login-button">Log In</button>
+
+  </form>
+
+  <!-- Optional Admin Creation Link -->
+  <div class="admin-link">
+    <a href="{% url 'accounts:register' %}">Student? Sign up with a join code</a>
+    <span class="dot">·</span>
+    <a href="{% url 'accounts:create_school' %}">
+      Create a School
+    </a>
+  </div>
+
+  </div>
+
+</main>
+
+
+</body>
+</html>

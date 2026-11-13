@@ -19,9 +19,11 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from accounts.views import dashboard
+from django.views.generic import RedirectView
 
 urlpatterns = [
-    path("", dashboard, name="dashboard"),
+    path("", RedirectView.as_view(pattern_name="dashboard"), name="home"),
+    path("dashboard/", dashboard, name="dashboard"),
     path('admin/', admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("courses/", include("courses.urls")),
