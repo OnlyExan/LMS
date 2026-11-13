@@ -19,3 +19,27 @@
 .btn { padding: 0.55rem 1rem; border-radius: 6px; background: var(--brand); color: #fff; text-decoration: none; font-size: 0.95rem; }
 .btn:hover { filter: brightness(1.1); }
 .btn-secondary { background: #e5e7eb; color: #1f2933; }
+
+/* instructor dashboard (LSM-87) */
+.course-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1rem; }
+.course-card { display: flex; flex-direction: column; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; overflow: hidden; transition: box-shadow .15s; }
+.course-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+.course-head { display: flex; flex-direction: column; gap: 0.15rem; padding: 1rem 1.1rem 0.75rem; border-top: 4px solid var(--brand); text-decoration: none; color: inherit; }
+.course-code { font-weight: 800; color: var(--brand); letter-spacing: 0.03em; }
+.course-title { font-weight: 600; font-size: 1.05rem; }
+.course-meta { display: flex; justify-content: space-between; align-items: center; padding: 0 1.1rem 0.85rem; font-size: 0.9rem; color: #4b5563; }
+.course-links { display: flex; border-top: 1px solid #f1f5f9; margin-top: auto; }
+.course-links a { flex: 1; text-align: center; padding: 0.6rem 0.25rem; font-size: 0.85rem; text-decoration: none; color: #374151; }
+.course-links a + a { border-left: 1px solid #f1f5f9; }
+.course-links a:hover { background: #f8fafc; color: var(--brand); }
+.badge-alert, .badge-ok { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; text-decoration: none; }
+.badge-alert { background: #fef3c7; color: #92400e; }
+.badge-ok { background: #dcfce7; color: #166534; }
+.empty-card { grid-column: 1 / -1; text-align: center; padding: 2rem; background: #fff; border: 1px dashed #d1d5db; border-radius: 10px; }
+.due-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
+.due-list li { display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; padding: 0.75rem 1.1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
+.due-list li:last-child { border-bottom: 0; }
+.due-list a { display: flex; gap: 0.6rem; align-items: baseline; text-decoration: none; color: inherit; }
+.due-list a:hover strong { color: var(--brand); }
+.due-when { color: #b45309; font-weight: 600; white-space: nowrap; }
+.dash-header .btn { align-self: center; }
