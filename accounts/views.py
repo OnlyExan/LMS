@@ -79,11 +79,27 @@ def dashboard(request):
     if user.role == User.STUDENT:
         from assignments.models import Assignment, Grade
         from courses.models import Enrollment
-        enrollments = (Enrollment.objects.filter(student=user, status=Enrollment.ACTIVE)
-                       .select_related("course", "course__instructor"))
+        enrollments = list(Enrollment.objects.filter(student=user, status=Enrollment.ACTIVE)
+                           .select_related("course", "course__instructor"))
         course_ids = [e.course_id for e in enrollments]
+        # current grade per course = points earned / points possible on graded work
+        totals = {}
+        for g in Grade.objects.filter(submission__student=user, submission__assignment__course_id__in=course_ids) \
+                              .select_related("submission__assignment"):
+            earned, possible = totals.get(g.submission.assignment.course_id, (0, 0))
+            totals[g.submission.assignment.course_id] = (earned + g.points_earned,
+                                                         possible + g.submission.assignment.points_possible)
+        for e in enrollments:
+            earned, possible = totals.get(e.course_id, (0, 0))
+            e.current_grade = (earned / possible * 100) if possible else None
         ctx.update(
             enrollments=enrollments,
+            # past due in the last 14 days and never submitted
+            overdue=(Assignment.objects
+                     .filter(course_id__in=course_ids, due_date__lt=now,
+                             due_date__gte=now - timedelta(days=14))
+                     .exclude(submissions__student=user)
+                     .select_related("course").order_by("-due_date")),
             # due in next 7 days, not yet submitted (due-soon banner)
             due_soon=(Assignment.objects
                       .filter(course_id__in=course_ids, due_date__gte=now,
