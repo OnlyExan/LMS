@@ -1,0 +1,109 @@
+{# LSM-86: student dashboard block. Context: school, enrollments (.course .current_grade), due_soon, overdue, recent_grades #}
+<section class="dash">
+  <header class="dash-header">
+    <div>
+      <h1>Welcome back, {{ user.first_name|default:user.username }}</h1>
+      <p class="muted">{{ school.name }} · Student dashboard</p>
+    </div>
+    <a class="btn" href="{% url 'courses:course_list' %}">Browse courses</a>
+  </header>
+
+  <div class="stat-grid">
+    <a class="stat-card" href="{% url 'courses:course_list' %}?mine=1">
+      <span class="stat-num">{{ enrollments|length }}</span>
+      <span class="stat-label">Course{{ enrollments|length|pluralize }}</span>
+    </a>
+    <a class="stat-card {% if due_soon %}stat-alert{% endif %}" href="{% url 'assignments:assignment_list' %}?upcoming=1">
+      <span class="stat-num">{{ due_soon|length }}</span>
+      <span class="stat-label">Due this week</span>
+    </a>
+    <div class="stat-card {% if overdue %}stat-danger{% endif %}">
+      <span class="stat-num">{{ overdue|length }}</span>
+      <span class="stat-label">Missing</span>
+    </div>
+    <a class="stat-card {% if recent_grades %}stat-good{% endif %}" href="{% url 'assignments:my_grades' %}">
+      <span class="stat-num">{{ recent_grades|length }}</span>
+      <span class="stat-label">New grade{{ recent_grades|length|pluralize }}</span>
+    </a>
+  </div>
+
+  {# ---- missing work (only if any) ---- #}
+  {% if overdue %}
+  <div class="callout callout-danger">
+    <strong>You have {{ overdue|length }} missing assignment{{ overdue|length|pluralize }}</strong>
+    <ul>
+      {% for a in overdue %}
+        <li><a href="{% url 'assignments:assignment_detail' a.pk %}">{{ a.title }}</a> <span class="muted">· {{ a.course.code }} · was due {{ a.due_date|date:"M j" }}</span></li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {# ---- due this week ---- #}
+  <h2>Due in the next 7 days</h2>
+  {% if due_soon %}
+    <ul class="due-list">
+      {% for a in due_soon %}
+        <li>
+          <a href="{% url 'assignments:assignment_detail' a.pk %}">
+            <strong>{{ a.title }}</strong>
+            <span class="muted">{{ a.course.code }}</span>
+          </a>
+          <span class="due-when">due in {{ a.due_date|timeuntil }} · {{ a.due_date|date:"D M j, g:i A" }}</span>
+          <a class="btn btn-sm" href="{% url 'assignments:assignment_detail' a.pk %}">Submit</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="all-clear">🎉 You're all caught up — nothing due this week.</p>
+  {% endif %}
+
+  {# ---- courses ---- #}
+  <h2>My courses</h2>
+  <div class="course-grid">
+    {% for e in enrollments %}
+      <article class="course-card">
+        <a class="course-head" href="{% url 'courses:course_detail' e.course.pk %}">
+          <span class="course-code">{{ e.course.code }}</span>
+          <span class="course-title">{{ e.course.title }}</span>
+          <span class="muted">{{ e.course.term }} · {{ e.course.instructor.get_full_name|default:e.course.instructor.username }}</span>
+        </a>
+        <div class="course-meta">
+          <span>Current grade</span>
+          {% if e.current_grade is not None %}
+            <span class="grade-pill {% if e.current_grade >= 90 %}g-a{% elif e.current_grade >= 70 %}g-b{% else %}g-c{% endif %}">{{ e.current_grade|floatformat:1 }}%</span>
+          {% else %}
+            <span class="muted">No grades yet</span>
+          {% endif %}
+        </div>
+      </article>
+    {% empty %}
+      <div class="empty-card">
+        <p>You're not enrolled in any courses yet.</p>
+        <a class="btn" href="{% url 'courses:course_list' %}">Find a course</a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ---- recent grades ---- #}
+  <h2>Recent grades</h2>
+  {% if recent_grades %}
+    <ul class="due-list">
+      {% for g in recent_grades %}
+        <li>
+          <a href="{% url 'assignments:assignment_detail' g.submission.assignment.pk %}">
+            <strong>{{ g.submission.assignment.title }}</strong>
+            <span class="muted">{{ g.submission.assignment.course.code }}</span>
+          </a>
+          <span class="muted">graded {{ g.graded_at|timesince }} ago</span>
+          <span class="grade-pill {% if g.percentage >= 90 %}g-a{% elif g.percentage >= 70 %}g-b{% else %}g-c{% endif %}">
+            {{ g.points_earned|floatformat:"-2" }}/{{ g.submission.assignment.points_possible|floatformat:"-2" }} · {{ g.percentage|floatformat:0 }}%
+          </span>
+        </li>
+      {% endfor %}
+    </ul>
+    <p><a class="link-muted" href="{% url 'assignments:my_grades' %}">See all grades →</a></p>
+  {% else %}
+    <p class="muted">No new grades in the last 7 days.</p>
+  {% endif %}
+</section>

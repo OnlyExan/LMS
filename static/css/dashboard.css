@@ -43,3 +43,18 @@
 .due-list a:hover strong { color: var(--brand); }
 .due-when { color: #b45309; font-weight: 600; white-space: nowrap; }
 .dash-header .btn { align-self: center; }
+
+/* student dashboard (LSM-86) */
+.stat-danger { border-color: #fca5a5; background: #fef2f2; }
+.stat-good { border-color: #86efac; background: #f0fdf4; }
+.callout { padding: 1rem 1.25rem; border-radius: 10px; margin-top: 1.5rem; }
+.callout ul { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+.callout a { font-weight: 600; }
+.callout-danger { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+.callout-danger a { color: #991b1b; }
+.all-clear { padding: 1rem 1.25rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; color: #166534; }
+.grade-pill { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
+.g-a { background: #dcfce7; color: #166534; }
+.g-b { background: #fef3c7; color: #92400e; }
+.g-c { background: #fee2e2; color: #991b1b; }
+.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }

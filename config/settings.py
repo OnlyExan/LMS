@@ -187,7 +187,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # uploads -> Supabase Storage when configured, local disk otherwise
-if os.getenv("SUPABASE_S3_BUCKET"):
+if os.getenv("SUPABASE_S3_BUCKET") and not TESTING:  # tests never touch Supabase storage
     STORAGES = {
         "default": {
             "BACKEND": "storages.backends.s3.S3Storage",
