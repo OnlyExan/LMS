@@ -169,3 +169,11 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .dot-settings_changed { background: var(--brand); }
 .compact-list { background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; margin-bottom: 0.5rem; }
 .filter-select { height: 38px; }
+
+/* users table polish */
+.name-line { display: flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+.name-line .you { margin-left: 0; }
+.user-cell .muted.small { white-space: nowrap; }
+.actions-cell { text-align: left; }           /* Edit buttons line up on every row */
+.data-table td:first-child + td { min-width: 200px; }
+.data-table tr:has(.you) { background: #f8fafc; } /* your own row, subtly marked */

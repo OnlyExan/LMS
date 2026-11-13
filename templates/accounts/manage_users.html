@@ -7,7 +7,7 @@
 <div class="admin-page">
   <div class="admin-header">
     <div>
-      <h1>Manage Users</h1>
+      <h1>Admin</h1>
       <p class="muted">{{ page.paginator.count }} user{{ page.paginator.count|pluralize }}{% if role %} · {{ role|capfirst }}s{% endif %}{% if q %} · matching “{{ q }}”{% endif %}</p>
     </div>
     <a class="btn-primary" href="{% url 'accounts:invite_user' %}" data-open-invite>+ Invite user</a>
@@ -56,7 +56,7 @@
             <div class="user-cell">
               <span class="avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</span>
               <div>
-                <a href="{% url 'accounts:user_detail' u.pk %}" class="user-link"><strong>{{ u.get_full_name|default:u.username }}</strong></a>{% if u == request.user %} <span class="you">You</span>{% endif %}
+                <div class="name-line"><a href="{% url 'accounts:user_detail' u.pk %}" class="user-link"><strong>{{ u.get_full_name|default:u.username }}</strong></a>{% if u == request.user %}<span class="you">You</span>{% endif %}</div>
                 <div class="muted small">@{{ u.username }}</div>
               </div>
             </div>
