@@ -173,6 +173,7 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 60 * 60 * 8
 
 LOGIN_URL = "accounts:login"
+PASSWORD_RESET_TIMEOUT = 60 * 60 * 24  # admin-issued reset links last 24h
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "accounts:login"
 

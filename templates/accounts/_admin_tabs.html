@@ -4,5 +4,6 @@
   <a href="{% url 'accounts:school_settings' %}" class="{% if n == 'school_settings' %}active{% endif %}">Settings</a>
   <a href="{% url 'accounts:manage_users' %}" class="{% if n == 'manage_users' %}active{% endif %}">Users</a>
   <a href="{% url 'accounts:invite_list' %}" class="{% if n == 'invite_list' or n == 'invite_user' %}active{% endif %}">Invites</a>
+  <a href="{% url 'accounts:activity_log' %}" class="{% if n == 'activity_log' %}active{% endif %}">Activity</a>
 </nav>
 {% endwith %}

@@ -20,7 +20,9 @@
       {% if user.school %}{{ user.school.name }}{% else %}Platform admin{% endif %}
     </span>
     <div class="topbar-user">
-      <span>Hi, {{ user.first_name|default:user.username }}</span>
+      <a href="{% url 'accounts:account_settings' %}" class="topbar-name">Hi, {{ user.first_name|default:user.username }}</a>
+      {# role label; superusers show Platform unless viewing a school #}
+      <span class="role-tag role-tag-{{ user.role }}">{% if user.is_superuser and not request.acting_school %}Platform Admin{% else %}{{ user.get_role_display }}{% endif %}</span>
       {# logout is POST-only in Django 5 #}
       <form method="post" action="{% url 'accounts:logout' %}">
         {% csrf_token %}<button type="submit" class="logout-btn">Log out</button>
@@ -40,6 +42,10 @@
   {% if user.is_authenticated %}
   {% with rm=request.resolver_match %}
   <nav class="sidenav">
+    <a href="{% url 'accounts:account_settings' %}" class="sidenav-item{% if rm.url_name == 'account_settings' %} active{% endif %}">
+      <span class="nav-avatar">{{ user.first_name|default:user.username|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</span>
+      <span>Account</span>
+    </a>
     {% if user.school %}{# school pages only; superusers see these after picking a school #}
     <a href="{% url 'dashboard' %}" class="sidenav-item{% if rm.url_name == 'dashboard' %} active{% endif %}">
       <svg viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><circle cx="12" cy="18" r="1.2"/></svg>

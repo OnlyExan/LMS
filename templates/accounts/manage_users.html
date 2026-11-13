@@ -8,7 +8,7 @@
   <div class="admin-header">
     <div>
       <h1>Manage Users</h1>
-      <p class="muted">{{ users|length }} user{{ users|length|pluralize }}{% if role %} · {{ role|capfirst }}s{% endif %}{% if q %} · matching “{{ q }}”{% endif %}</p>
+      <p class="muted">{{ page.paginator.count }} user{{ page.paginator.count|pluralize }}{% if role %} · {{ role|capfirst }}s{% endif %}{% if q %} · matching “{{ q }}”{% endif %}</p>
     </div>
     <a class="btn-primary" href="{% url 'accounts:invite_user' %}" data-open-invite>+ Invite user</a>
   </div>
@@ -30,19 +30,33 @@
     </form>
   </div>
 
+  {# bulk form lives outside the table; row checkboxes join it via form="bulkForm" #}
+  <form method="post" action="{% url 'accounts:bulk_users' %}" id="bulkForm" class="bulk-bar" hidden
+        onsubmit="return confirmBulk(this)">
+    {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <strong><span id="bulkCount">0</span> selected</strong>
+    <select name="action" class="role-select" required>
+      <option value="">Choose action…</option>
+      {% for val, label in bulk_actions.items %}<option value="{{ val }}">{{ label }}</option>{% endfor %}
+    </select>
+    <button class="btn-primary btn-sm">Apply</button>
+    <button type="button" class="link-muted reset-btn" onclick="clearBulk()">Clear</button>
+  </form>
+
   <div class="table-card">
     <table class="data-table">
       <thead>
-        <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
+        <tr><th class="check-col"><input type="checkbox" id="selectAll" title="Select all on this page"></th><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
       </thead>
       <tbody>
       {% for u in users %}
         <tr{% if not u.is_active %} class="row-inactive"{% endif %}>
+          <td class="check-col">{% if u != request.user %}<input type="checkbox" name="ids" value="{{ u.pk }}" form="bulkForm" class="row-check" data-username="{{ u.username }}">{% endif %}</td>
           <td>
             <div class="user-cell">
-              <div class="avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</div>
+              <span class="avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</span>
               <div>
-                <strong>{{ u.get_full_name|default:u.username }}</strong>{% if u == request.user %} <span class="you">You</span>{% endif %}
+                <a href="{% url 'accounts:user_detail' u.pk %}" class="user-link"><strong>{{ u.get_full_name|default:u.username }}</strong></a>{% if u == request.user %} <span class="you">You</span>{% endif %}
                 <div class="muted small">@{{ u.username }}</div>
               </div>
             </div>
@@ -54,7 +68,7 @@
             {% else %}
               {# auto-submits on change; server validates the role #}
               <form method="post" action="{% url 'accounts:change_role' u.pk %}">
-                {% csrf_token %}
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
                 <select name="role" class="role-select" onchange="this.form.submit()">
                   <option value="student" {% if u.role == 'student' %}selected{% endif %}>Student</option>
                   <option value="instructor" {% if u.role == 'instructor' %}selected{% endif %}>Instructor</option>
@@ -68,10 +82,21 @@
           </td>
           <td class="muted small">{{ u.date_joined|date:"M j, Y" }}</td>
           <td class="actions-cell">
+            <div class="row-actions">
+            <button type="button" class="btn-outline btn-sm" data-edit-user
+                    data-action="{% url 'accounts:edit_user' u.pk %}" data-username="{{ u.username }}"
+                    data-first="{{ u.first_name }}" data-last="{{ u.last_name }}" data-email="{{ u.email }}">Edit</button>
             {% if u != request.user %}
+            {% if u.is_active %}
+            <form method="post" action="{% url 'accounts:reset_password_link' u.pk %}"
+                  onsubmit="return confirm('Create a password reset link for {{ u.username|escapejs }}? Their current password keeps working until they use it.');">
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button class="btn-outline btn-sm">Reset password</button>
+            </form>
+            {% endif %}
             <form method="post" action="{% url 'accounts:toggle_active' u.pk %}"
                   {% if u.is_active %}onsubmit="return confirm('Deactivate {{ u.username }}? They won\'t be able to log in.');"{% endif %}>
-              {% csrf_token %}
+              {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
               {% if u.is_active %}
                 <button class="btn-outline btn-sm btn-danger-outline">Deactivate</button>
               {% else %}
@@ -79,13 +104,86 @@
               {% endif %}
             </form>
             {% endif %}
+            </div>
           </td>
         </tr>
       {% empty %}
-        <tr><td colspan="6" class="empty-row">No users found{% if q or role %} — <a href="?">clear filters</a>{% endif %}.</td></tr>
+        <tr><td colspan="7" class="empty-row">No users found{% if q or role %} — <a href="?">clear filters</a>{% endif %}.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
+
+  {# pager keeps role + search in every link #}
+  {% if page.paginator.num_pages > 1 %}
+  {% with qs="&"|add:filter_qs %}
+  <nav class="pager">
+    <span class="muted small">Showing {{ page.start_index }}–{{ page.end_index }} of {{ page.paginator.count }}</span>
+    <div class="pager-links">
+      {% if page.has_previous %}
+        <a href="?page=1{{ qs }}">« First</a>
+        <a href="?page={{ page.previous_page_number }}{{ qs }}">‹ Prev</a>
+      {% else %}<span class="disabled">« First</span><span class="disabled">‹ Prev</span>{% endif %}
+      <span class="current">Page {{ page.number }} of {{ page.paginator.num_pages }}</span>
+      {% if page.has_next %}
+        <a href="?page={{ page.next_page_number }}{{ qs }}">Next ›</a>
+        <a href="?page={{ page.paginator.num_pages }}{{ qs }}">Last »</a>
+      {% else %}<span class="disabled">Next ›</span><span class="disabled">Last »</span>{% endif %}
+    </div>
+  </nav>
+  {% endwith %}
+  {% endif %}
 </div>
+{# edit name/email pop-up — filled from the row's data-* attributes #}
+<dialog id="editUserModal" class="modal">
+  <form method="post" class="modal-body" id="editUserForm">
+    {% csrf_token %}
+    <input type="hidden" name="next" value="{{ request.get_full_path }}">
+    <div class="modal-head">
+      <h2>Edit <span id="editUsername"></span></h2>
+      <button type="button" class="modal-close" aria-label="Close" onclick="this.closest('dialog').close()">&times;</button>
+    </div>
+    <p class="muted">Students can't change their own name, so fix typos here.</p>
+    <div class="name-row">
+      <label class="field"><span>First name</span><input type="text" name="first_name" maxlength="150"></label>
+      <label class="field"><span>Last name</span><input type="text" name="last_name" maxlength="150"></label>
+    </div>
+    <label class="field"><span>Email</span><input type="email" name="email"></label>
+    <div class="modal-foot">
+      <span></span>
+      <div>
+        <button type="button" class="btn-outline" onclick="this.closest('dialog').close()">Cancel</button>
+        <button type="submit" class="btn-primary">Save</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<script>
+  document.querySelectorAll("[data-edit-user]").forEach(btn => btn.addEventListener("click", () => {
+    const d = document.getElementById("editUserModal"), f = document.getElementById("editUserForm");
+    f.action = btn.dataset.action;
+    document.getElementById("editUsername").textContent = "@" + btn.dataset.username;
+    f.first_name.value = btn.dataset.first; f.last_name.value = btn.dataset.last; f.email.value = btn.dataset.email;
+    d.showModal(); f.first_name.focus();
+  }));
+</script>
+<script>
+  // bulk selection
+  const checks = [...document.querySelectorAll(".row-check")], all = document.getElementById("selectAll"),
+        bar = document.getElementById("bulkForm"), count = document.getElementById("bulkCount");
+  function syncBulk() {
+    const n = checks.filter(c => c.checked).length;
+    count.textContent = n; bar.hidden = n === 0;
+    all.checked = n > 0 && n === checks.length; all.indeterminate = n > 0 && n < checks.length;
+    checks.forEach(c => c.closest("tr").classList.toggle("row-selected", c.checked));
+  }
+  checks.forEach(c => c.addEventListener("change", syncBulk));
+  all.addEventListener("change", () => { checks.forEach(c => c.checked = all.checked); syncBulk(); });
+  function clearBulk() { checks.forEach(c => c.checked = false); syncBulk(); }
+  function confirmBulk(form) {
+    const n = checks.filter(c => c.checked).length, label = form.action.selectedOptions[0].text;
+    return confirm(`${label} for ${n} user${n === 1 ? "" : "s"}?`);
+  }
+</script>
 {% endblock %}

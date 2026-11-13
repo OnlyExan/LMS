@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Account Settings{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div>
+      <h1>Account</h1>
+      <p class="muted">Manage your profile and password.</p>
+    </div>
+  </div>
+
+  <div class="settings-layout">
+    <div class="settings-main">
+
+      {# ---- profile ---- #}
+      <form method="post" class="form-card">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="profile">
+        <div>
+          <h2 class="card-title">Profile</h2>
+          <p class="muted small">How you appear to teachers, classmates and admins.</p>
+        </div>
+
+        <div class="name-row">
+          <label class="field">
+            <span>First name</span>
+            {% if can_edit_details %}
+              <input type="text" name="first_name" value="{{ profile_form.first_name.value|default:'' }}" maxlength="150">
+            {% else %}
+              <input type="text" value="{{ user.first_name|default:'—' }}" disabled>
+            {% endif %}
+          </label>
+          <label class="field">
+            <span>Last name</span>
+            {% if can_edit_details %}
+              <input type="text" name="last_name" value="{{ profile_form.last_name.value|default:'' }}" maxlength="150">
+            {% else %}
+              <input type="text" value="{{ user.last_name|default:'—' }}" disabled>
+            {% endif %}
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Email</span>
+          {% if can_edit_details %}
+            <input type="email" name="email" value="{{ profile_form.email.value|default:'' }}">
+            {% for e in profile_form.email.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+          {% else %}
+            <input type="email" value="{{ user.email|default:'—' }}" disabled>
+          {% endif %}
+        </label>
+        {% if not can_edit_details %}
+          <p class="lock-note">🔒 Students can't change their name or email. Ask your school admin if something needs fixing.</p>
+        {% endif %}
+
+        <div class="form-foot">
+          <span class="muted small">Username: <code>{{ user.username }}</code> (can't be changed)</span>
+          <button class="btn-primary">Save profile</button>
+        </div>
+      </form>
+
+      {# ---- password ---- #}
+      <form method="post" class="form-card">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="password">
+        <div>
+          <h2 class="card-title">Change password</h2>
+          <p class="muted small">You'll stay logged in on this device.</p>
+        </div>
+        {% for field in password_form %}
+          <label class="field">
+            <span>{{ field.label }}</span>
+            <input type="password" name="{{ field.html_name }}" autocomplete="{% if forloop.first %}current-password{% else %}new-password{% endif %}" required>
+            {% for e in field.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+          </label>
+        {% endfor %}
+        {% for e in password_form.non_field_errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+        <div class="form-foot">
+          <span class="muted small">At least 8 characters, not too common or all numbers.</span>
+          <button class="btn-primary">Update password</button>
+        </div>
+      </form>
+    </div>
+
+    {# ---- account summary ---- #}
+    <aside class="form-card settings-side">
+      <div class="account-summary">
+        <span class="avatar avatar-lg">{{ user.first_name|default:user.username|slice:":1"|upper }}{{ user.last_name|slice:":1"|upper }}</span>
+        <strong>{{ user.get_full_name|default:user.username }}</strong>
+        <span class="muted small">@{{ user.username }}</span>
+      </div>
+      <dl class="info-list">
+        <dt>Role</dt>
+        <dd><span class="role-pill role-{{ user.role }}">{% if user.is_superuser and not request.acting_school %}Platform Admin{% else %}{{ user.get_role_display }}{% endif %}</span></dd>
+        <dt>School</dt><dd>{{ user.school.name|default:"—" }}</dd>
+        <dt>Member since</dt><dd>{{ user.date_joined|date:"M j, Y" }}</dd>
+        <dt>Last login</dt><dd>{{ user.last_login|date:"M j, g:i A"|default:"—" }}</dd>
+      </dl>
+    </aside>
+  </div>
+</div>
+{% endblock %}

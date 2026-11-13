@@ -123,3 +123,32 @@ class AdminInvite(models.Model):
 
     def __str__(self):
         return f"Invite {self.email} -> {self.school} ({self.role})"
+
+
+class AuditLog(models.Model):
+    """Who did what in a school's admin area. Labels are snapshots so entries survive user deletes."""
+    ROLE_CHANGED, ACTIVATED, DEACTIVATED, USER_EDITED = "role_changed", "activated", "deactivated", "user_edited"
+    PASSWORD_LINK, INVITE_SENT, INVITE_REVOKED = "password_link", "invite_sent", "invite_revoked"
+    SETTINGS_CHANGED, JOIN_CODE_RESET = "settings_changed", "join_code_reset"
+    ACTION_CHOICES = [
+        (ROLE_CHANGED, "Role changed"), (ACTIVATED, "Reactivated"), (DEACTIVATED, "Deactivated"),
+        (USER_EDITED, "User edited"), (PASSWORD_LINK, "Password reset link"),
+        (INVITE_SENT, "Invite sent"), (INVITE_REVOKED, "Invite revoked"),
+        (SETTINGS_CHANGED, "Settings changed"), (JOIN_CODE_RESET, "Join code regenerated"),
+    ]
+
+    school = models.ForeignKey(School, on_delete=models.CASCADE, related_name="audit_logs")
+    actor = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="audit_actions")
+    actor_label = models.CharField(max_length=150)
+    action = models.CharField(max_length=30, choices=ACTION_CHOICES)
+    target_user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,
+                                    related_name="audit_entries")
+    target_label = models.CharField(max_length=254, blank=True)  # username or email at the time
+    details = models.CharField(max_length=255, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.actor_label} {self.action} {self.target_label}"

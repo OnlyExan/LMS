@@ -163,3 +163,27 @@ class SchoolSettingsForm(forms.ModelForm):
 
     def clean_brand_color(self):
         return self.cleaned_data["brand_color"].lower()
+
+
+class ProfileForm(forms.ModelForm):
+    """Self-service profile. Students can't change name/email; admins fix those for them."""
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "email")
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.can_edit_details(self.instance):
+            for f in ("first_name", "last_name", "email"):
+                del self.fields[f]
+
+    @staticmethod
+    def can_edit_details(user):
+        return user.is_superuser or user.role in (User.INSTRUCTOR, User.ADMIN)
+
+
+class AdminUserEditForm(forms.ModelForm):
+    """School admin edits another user's name/email."""
+    class Meta:
+        model = User
+        fields = ("first_name", "last_name", "email")

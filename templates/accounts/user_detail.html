@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ target.get_full_name|default:target.username }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <a href="{% url 'accounts:manage_users' %}" class="back-link">‹ Back to users</a>
+
+  {# ---- profile header ---- #}
+  <div class="profile-head form-card">
+    <div class="profile-id">
+      <span class="avatar avatar-lg">{{ target.first_name|default:target.username|slice:":1"|upper }}{{ target.last_name|slice:":1"|upper }}</span>
+      <div>
+        <h1>{{ target.get_full_name|default:target.username }}{% if target == request.user %} <span class="you">You</span>{% endif %}</h1>
+        <p class="muted">@{{ target.username }} · {{ target.email|default:"no email" }}</p>
+        <div class="pill-row">
+          <span class="role-pill role-{{ target.role }}">{{ target.get_role_display }}</span>
+          {% if target.is_active %}<span class="status status-on">Active</span>{% else %}<span class="status status-off">Deactivated</span>{% endif %}
+        </div>
+      </div>
+    </div>
+    <dl class="info-list compact">
+      <dt>Joined</dt><dd>{{ target.date_joined|date:"M j, Y" }}</dd>
+      <dt>Last login</dt><dd>{{ target.last_login|date:"M j, g:i A"|default:"Never" }}</dd>
+    </dl>
+  </div>
+
+  {# ---- admin actions (all return here via next) ---- #}
+  {% if target != request.user %}
+  <div class="action-bar">
+    <form method="post" action="{% url 'accounts:change_role' target.pk %}" class="inline-form">
+      {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+      <label class="muted small">Role</label>
+      <select name="role" class="role-select" onchange="this.form.submit()">
+        {% for val, label in role_choices %}<option value="{{ val }}" {% if target.role == val %}selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </form>
+    <div class="row-actions">
+      {% if target.is_active %}
+      <form method="post" action="{% url 'accounts:reset_password_link' target.pk %}"
+            onsubmit="return confirm('Create a password reset link for {{ target.username|escapejs }}?');">
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button class="btn-outline btn-sm">Reset password</button>
+      </form>
+      {% endif %}
+      <form method="post" action="{% url 'accounts:toggle_active' target.pk %}"
+            {% if target.is_active %}onsubmit="return confirm('Deactivate {{ target.username|escapejs }}? They won\'t be able to log in.');"{% endif %}>
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
+        {% if target.is_active %}<button class="btn-outline btn-sm btn-danger-outline">Deactivate</button>
+        {% else %}<button class="btn-outline btn-sm">Reactivate</button>{% endif %}
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if activity %}
+  <h2 class="section-title">Recent admin activity</h2>
+  <ul class="activity-list compact-list">
+    {% for log in activity %}{% include "accounts/_activity_item.html" %}{% endfor %}
+  </ul>
+  <a class="link-muted" href="{% url 'accounts:activity_log' %}?q={{ target.username|urlencode }}">See all activity for @{{ target.username }} →</a>
+  {% endif %}
+
+  {% if target.role == "student" %}
+    {# ---- student: stats, enrollments, submissions ---- #}
+    <div class="stat-row">
+      <div class="mini-stat"><strong>{{ enrollments|length }}</strong><span>Courses</span></div>
+      <div class="mini-stat"><strong>{{ stats.submitted }}</strong><span>Submitted</span></div>
+      <div class="mini-stat"><strong>{{ stats.graded }}</strong><span>Graded</span></div>
+      <div class="mini-stat{% if stats.late %} warn{% endif %}"><strong>{{ stats.late }}</strong><span>Late</span></div>
+      <div class="mini-stat"><strong>{% if stats.average is not None %}{{ stats.average|floatformat:1 }}%{% else %}—{% endif %}</strong><span>Avg. grade</span></div>
+    </div>
+
+    <h2 class="section-title">Enrollments</h2>
+    <div class="table-card">
+      <table class="data-table">
+        <thead><tr><th>Course</th><th>Term</th><th>Instructor</th><th>Status</th><th>Enrolled</th></tr></thead>
+        <tbody>
+        {% for e in enrollments %}
+          <tr{% if e.status != "active" %} class="row-inactive"{% endif %}>
+            <td><strong>{{ e.course.code }}</strong> <span class="muted small">{{ e.course.title }}</span></td>
+            <td>{{ e.course.term }}</td>
+            <td>{{ e.course.instructor.get_full_name|default:e.course.instructor.username }}</td>
+            <td><span class="status {% if e.status == 'active' %}status-on{% else %}status-off{% endif %}">{{ e.get_status_display }}</span></td>
+            <td class="muted small">{{ e.enrolled_at|date:"M j, Y" }}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty-row">Not enrolled in any courses.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <h2 class="section-title">Recent submissions</h2>
+    <div class="table-card">
+      <table class="data-table">
+        <thead><tr><th>Assignment</th><th>Course</th><th>Submitted</th><th>Grade</th></tr></thead>
+        <tbody>
+        {% for s in submissions %}
+          <tr>
+            <td><strong>{{ s.assignment.title }}</strong>{% if s.is_late %} <span class="status status-off">Late</span>{% endif %}</td>
+            <td>{{ s.assignment.course.code }}</td>
+            <td class="muted small">{{ s.submitted_at|date:"M j, g:i A" }}</td>
+            <td>{% if s.grade %}{{ s.grade.points_earned|floatformat:"-2" }} / {{ s.assignment.points_possible|floatformat:"-2" }} <span class="muted small">({{ s.grade.percentage|floatformat:0 }}%)</span>{% else %}<span class="muted">Not graded</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="empty-row">No submissions yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  {% else %}
+    {# ---- instructor / admin: courses taught ---- #}
+    <h2 class="section-title">Courses taught</h2>
+    <div class="table-card">
+      <table class="data-table">
+        <thead><tr><th>Course</th><th>Term</th><th>Students</th><th>Ungraded</th></tr></thead>
+        <tbody>
+        {% for c in courses %}
+          <tr>
+            <td><strong>{{ c.code }}</strong> <span class="muted small">{{ c.title }}</span></td>
+            <td>{{ c.term }}</td>
+            <td>{{ c.student_count }}</td>
+            <td>{% if c.ungraded %}<span class="status status-off">{{ c.ungraded }}</span>{% else %}<span class="muted">0</span>{% endif %}</td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="4" class="empty-row">Not teaching any courses.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

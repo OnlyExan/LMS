@@ -25,7 +25,7 @@ body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f6f9
 
 @media (max-width: 600px) {
   .topbar { flex-wrap: wrap; gap: 0.5rem; }
-  .topbar-user span { display: none; }
+  .topbar-user .topbar-name { display: none; }
 }
 
 /* left sidebar nav */
@@ -81,3 +81,15 @@ body.nav-collapsed .sidenav-collapse svg { transform: scaleX(-1); }
 .link-muted:hover { color: var(--brand); text-decoration: underline; }
 .flash-warning { background: #fffbeb; color: #92400e; }
 .topbar-logo { display: block; max-height: 36px; max-width: 160px; object-fit: contain; }
+
+/* role tag in top bar */
+.role-tag { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700; background: #e5e7eb; color: #374151; }
+.role-tag-admin { background: #ede9fe; color: #6d28d9; }
+.role-tag-instructor { background: #dbeafe; color: #1d4ed8; }
+.role-tag-platform { background: #fef3c7; color: #92400e; }
+
+/* account link: sidebar avatar + clickable name */
+.nav-avatar { width: 28px; height: 28px; border-radius: 50%; background: #fff; color: var(--brand); display: grid; place-items: center; font-size: 0.7rem; font-weight: 800; text-decoration: none !important; }
+.sidenav-item.active .nav-avatar { background: var(--brand); color: #fff; }
+.topbar-name { color: inherit; text-decoration: none; }
+.topbar-name:hover { color: var(--brand); text-decoration: underline; }

@@ -1,22 +1,38 @@
 from datetime import timedelta
 
 from django.contrib import messages
-from django.contrib.auth import login
+from django.contrib.auth import login, update_session_auth_hash
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.encoding import force_bytes
+from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.decorators import user_passes_test
+from django.core.paginator import Paginator
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
-from django.utils.http import url_has_allowed_host_and_scheme
+from django.utils.http import url_has_allowed_host_and_scheme, urlencode
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .decorators import admin_required, school_member_required
 from .forms import (
-    BulkInviteForm, InviteAcceptForm, InviteForm, RegisterForm, RoleChangeForm,
+    AdminUserEditForm, BulkInviteForm, InviteAcceptForm, InviteForm, ProfileForm, RegisterForm, RoleChangeForm,
     SchoolCreateForm, SchoolSettingsForm,
 )
 from .middleware import SESSION_KEY
-from .models import AdminInvite, School, User, make_join_code
+from .models import AdminInvite, AuditLog, School, User, make_join_code
+
+
+def audit(request, action, target=None, label="", details=""):
+    """Record an admin action for the activity log."""
+    actor = request.user
+    AuditLog.objects.create(
+        school=actor.school, actor=actor,
+        actor_label=actor.username + (" (platform)" if getattr(request, "acting_school", None) else ""),
+        action=action, target_user=target if isinstance(target, User) else None,
+        target_label=label or (target.username if isinstance(target, User) else ""), details=details[:255])
 
 
 # ---------- public auth ----------
@@ -125,6 +141,7 @@ def invite_user(request):
         invite = form.save(commit=False)
         invite.school, invite.invited_by = school, request.user
         invite.save()
+        audit(request, AuditLog.INVITE_SENT, label=invite.email, details=invite.role)
         # no email backend (out of scope) — admin copies the link
         link = request.build_absolute_uri(invite_url(invite))
         messages.success(request, f"Invite created for {invite.email}. Share this link: {link}")
@@ -134,6 +151,8 @@ def invite_user(request):
         role = bulk_form.cleaned_data["role"]
         created = [AdminInvite.objects.create(school=school, email=e, role=role, invited_by=request.user)
                    for e in bulk_form.cleaned_data["emails"]]
+        for inv in created:
+            audit(request, AuditLog.INVITE_SENT, label=inv.email, details=f"{role} (bulk)")
         if created:
             messages.success(request, f"Created {len(created)} invite{'s' if len(created) != 1 else ''}. "
                                       "Copy each link from the list below.")
@@ -171,8 +190,12 @@ def invite_list(request):
 def revoke_invite(request, pk):
     invite = get_object_or_404(AdminInvite, pk=pk, school=request.user.school)
     invite.revoke()
+    audit(request, AuditLog.INVITE_REVOKED, label=invite.email, details=invite.role)
     messages.info(request, f"Invite for {invite.email} revoked.")
     return redirect("accounts:invite_list")
+
+
+USERS_PER_PAGE = 25
 
 
 @admin_required
@@ -185,8 +208,11 @@ def manage_users(request):
     if q:
         users = users.filter(Q(username__icontains=q) | Q(first_name__icontains=q)
                              | Q(last_name__icontains=q) | Q(email__icontains=q))
+    page = Paginator(users, USERS_PER_PAGE).get_page(request.GET.get("page"))  # bad/out-of-range -> nearest page
     return render(request, "accounts/manage_users.html",
-                  {"users": users, "role_choices": User.ROLE_CHOICES, "q": q, "role": role})
+                  {"users": page, "page": page, "role_choices": User.ROLE_CHOICES, "q": q, "role": role,
+                   "filter_qs": urlencode({k: v for k, v in {"role": role, "q": q}.items() if v}),
+                   "bulk_actions": BULK_ACTIONS})
 
 
 @admin_required
@@ -197,10 +223,134 @@ def change_role(request, pk):
     if target == request.user:
         messages.error(request, "You can't change your own role.")
     elif form.is_valid():
+        old = target.role
         target.role = form.cleaned_data["role"]
         target.save(update_fields=["role"])
+        if old != target.role:
+            audit(request, AuditLog.ROLE_CHANGED, target, details=f"{old} → {target.role}")
         messages.success(request, f"{target.username} is now {target.role}.")
-    return redirect("accounts:manage_users")
+    return redirect(_safe_next(request, reverse("accounts:manage_users")))
+
+
+@admin_required
+def user_detail(request, pk):
+    from assignments.models import Submission
+    from courses.models import Course, Enrollment
+    target = get_object_or_404(User, pk=pk, school=request.user.school)
+    ctx = {"target": target, "role_choices": User.SCHOOL_ROLES,
+           "activity": AuditLog.objects.filter(school=request.user.school, target_user=target)[:10]}
+
+    if target.role == User.STUDENT:
+        subs = list(Submission.objects.filter(student=target)
+                    .select_related("assignment__course", "grade").order_by("-submitted_at"))
+        graded = [s for s in subs if hasattr(s, "grade")]
+        ctx.update(
+            enrollments=(Enrollment.objects.filter(student=target)
+                         .select_related("course__instructor").order_by("status", "course__code")),
+            submissions=subs[:15],  # most recent
+            stats={
+                "submitted": len(subs),
+                "graded": len(graded),
+                "late": sum(s.is_late for s in subs),
+                "average": (sum(s.grade.percentage for s in graded) / len(graded)) if graded else None,
+            },
+        )
+    else:
+        ctx["courses"] = (Course.objects.filter(school=target.school, instructor=target)
+                          # distinct: two joined counts would otherwise multiply each other
+                          .annotate(student_count=Count("enrollments", filter=Q(enrollments__status="active"), distinct=True),
+                                    ungraded=Count("assignments__submissions", distinct=True,
+                                                   filter=Q(assignments__submissions__grade__isnull=True)))
+                          .order_by("-term", "code"))
+    return render(request, "accounts/user_detail.html", ctx)
+
+
+ACTIVITY_PER_PAGE = 50
+
+
+@admin_required
+def activity_log(request):
+    logs = AuditLog.objects.filter(school=request.user.school).select_related("target_user")
+    action = request.GET.get("action", "")
+    if action in dict(AuditLog.ACTION_CHOICES):
+        logs = logs.filter(action=action)
+    q = request.GET.get("q", "").strip()
+    if q:
+        logs = logs.filter(Q(actor_label__icontains=q) | Q(target_label__icontains=q) | Q(details__icontains=q))
+    page = Paginator(logs, ACTIVITY_PER_PAGE).get_page(request.GET.get("page"))
+    return render(request, "accounts/activity_log.html", {
+        "page": page, "action": action, "q": q, "action_choices": AuditLog.ACTION_CHOICES,
+        "filter_qs": urlencode({k: v for k, v in {"action": action, "q": q}.items() if v}),
+    })
+
+
+@admin_required
+@require_POST
+def edit_user(request, pk):
+    target = get_object_or_404(User, pk=pk, school=request.user.school)
+    form = AdminUserEditForm(request.POST, instance=target)
+    if form.is_valid():
+        form.save()
+        if form.changed_data:
+            audit(request, AuditLog.USER_EDITED, target, details="changed " + ", ".join(form.changed_data))
+        messages.success(request, f"Updated {target.get_full_name() or target.username}.")
+    else:
+        errs = "; ".join(e for errs in form.errors.values() for e in errs)
+        messages.error(request, f"Couldn't update {target.username}: {errs}")
+    return redirect(_safe_next(request, reverse("accounts:manage_users")))
+
+
+@admin_required
+@require_POST
+def reset_password_link(request, pk):
+    """No email backend, so the admin gets a one-time link to hand to the user."""
+    target = get_object_or_404(User, pk=pk, school=request.user.school)
+    if target == request.user:
+        messages.error(request, "Change your own password from your Account page.")
+    elif not target.is_active:
+        messages.error(request, f"{target.username} is deactivated. Reactivate them first.")
+    else:
+        # token dies once the password changes or after PASSWORD_RESET_TIMEOUT
+        uid = urlsafe_base64_encode(force_bytes(target.pk))
+        token = default_token_generator.make_token(target)
+        link = request.build_absolute_uri(reverse("accounts:password_reset_confirm", args=[uid, token]))
+        audit(request, AuditLog.PASSWORD_LINK, target)
+        messages.success(request, f"Password reset link for {target.get_full_name() or target.username} "
+                                  f"(works once, expires in 24 hours): {link}")
+    return redirect(_safe_next(request, reverse("accounts:manage_users")))
+
+
+BULK_ACTIONS = {
+    "role_student": "Change role to Student", "role_instructor": "Change role to Instructor",
+    "role_admin": "Change role to Admin", "deactivate": "Deactivate", "reactivate": "Reactivate",
+}
+
+
+@admin_required
+@require_POST
+def bulk_users(request):
+    action = request.POST.get("action")
+    back = _safe_next(request, reverse("accounts:manage_users"))
+    if action not in BULK_ACTIONS:
+        messages.error(request, "Pick an action.")
+        return redirect(back)
+    # school-scoped, and never the admin themselves
+    users = (User.objects.filter(school=request.user.school, pk__in=request.POST.getlist("ids"))
+             .exclude(pk=request.user.pk))
+    if not users:
+        messages.error(request, "Select at least one user (you can't include yourself).")
+        return redirect(back)
+
+    log_action = {"deactivate": AuditLog.DEACTIVATED, "reactivate": AuditLog.ACTIVATED}.get(action, AuditLog.ROLE_CHANGED)
+    for u in users:  # one entry per user so the log stays filterable
+        detail = f"{u.role} → {action.removeprefix('role_')} (bulk)" if action.startswith("role_") else "bulk"
+        audit(request, log_action, u, details=detail)
+    if action.startswith("role_"):
+        n = users.update(role=action.removeprefix("role_"))
+    else:
+        n = users.update(is_active=(action == "reactivate"))
+    messages.success(request, f"{BULK_ACTIONS[action]}: {n} user{'s' if n != 1 else ''} updated.")
+    return redirect(back)
 
 
 @admin_required
@@ -212,9 +362,10 @@ def toggle_active(request, pk):
     else:
         target.is_active = not target.is_active
         target.save(update_fields=["is_active"])
+        audit(request, AuditLog.ACTIVATED if target.is_active else AuditLog.DEACTIVATED, target)
         state = "reactivated" if target.is_active else "deactivated"
         messages.success(request, f"{target.username} {state}.")
-    return redirect("accounts:manage_users")
+    return redirect(_safe_next(request, reverse("accounts:manage_users")))
 
 
 @admin_required
@@ -228,6 +379,7 @@ def school_settings(request):
             school.name = name[:200]
         school.join_code = make_join_code()
         school.save(update_fields=["name", "join_code"])
+        audit(request, AuditLog.JOIN_CODE_RESET)
         messages.success(request, f"New join code: {school.join_code}. The old code no longer works.")
         return redirect("accounts:school_settings")
 
@@ -235,6 +387,9 @@ def school_settings(request):
     form = SchoolSettingsForm(request.POST or None, request.FILES or None, instance=school)
     if request.method == "POST" and form.is_valid():
         school = form.save()
+        if form.changed_data:
+            audit(request, AuditLog.SETTINGS_CHANGED, details="changed " + ", ".join(
+                f.replace("_", " ") for f in form.changed_data))
         if old_logo and old_logo != school.logo.name:
             school.logo.storage.delete(old_logo)  # replaced or cleared: free the storage
         messages.success(request, "School settings saved.")
@@ -268,3 +423,28 @@ def switch_school(request):
 def exit_school(request):
     request.session.pop(SESSION_KEY, None)
     return redirect("accounts:switch_school")
+
+
+# ---------- user's own settings ----------
+
+@login_required
+def account_settings(request):
+    user = request.user
+    action = request.POST.get("action")
+    profile_form = ProfileForm(request.POST if action == "profile" else None, instance=user)
+    password_form = PasswordChangeForm(user, request.POST if action == "password" else None)
+
+    if action == "profile" and profile_form.is_valid():
+        profile_form.save()
+        messages.success(request, "Profile saved.")
+        return redirect("accounts:account_settings")
+    if action == "password" and password_form.is_valid():
+        password_form.save()
+        update_session_auth_hash(request, password_form.user)  # stay logged in
+        messages.success(request, "Password changed.")
+        return redirect("accounts:account_settings")
+
+    return render(request, "accounts/account_settings.html", {
+        "profile_form": profile_form, "password_form": password_form,
+        "can_edit_details": ProfileForm.can_edit_details(user),
+    })
