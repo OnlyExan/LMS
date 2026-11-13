@@ -5,12 +5,14 @@ from django.contrib.auth import login
 from django.contrib.auth.decorators import user_passes_test
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from .decorators import admin_required, school_member_required
 from .forms import (
-    InviteAcceptForm, InviteForm, RegisterForm, RoleChangeForm,
+    BulkInviteForm, InviteAcceptForm, InviteForm, RegisterForm, RoleChangeForm,
     SchoolCreateForm, SchoolSettingsForm,
 )
 from .middleware import SESSION_KEY
@@ -20,7 +22,8 @@ from .models import AdminInvite, School, User, make_join_code
 # ---------- public auth ----------
 
 def register(request):
-    form = RegisterForm(request.POST or None)
+    # ?code=ABC123 pre-fills the join code (shareable sign-up link)
+    form = RegisterForm(request.POST or None, initial={"join_code": request.GET.get("code", "")})
     if request.method == "POST" and form.is_valid():
         user = form.save()
         login(request, user)
@@ -103,19 +106,47 @@ def dashboard(request):
 
 # ---------- school admin ----------
 
+def _safe_next(request, default):
+    """Redirect target from the form's `next` field, only if it's on this site."""
+    nxt = request.POST.get("next") or request.GET.get("next")
+    if nxt and url_has_allowed_host_and_scheme(nxt, {request.get_host()}, request.is_secure()):
+        return nxt
+    return default
+
+
 @admin_required
 def invite_user(request):
-    form = InviteForm(request.POST or None)
-    if request.method == "POST" and form.is_valid():
+    school = request.user.school
+    bulk_mode = request.POST.get("mode") == "bulk"
+    form = InviteForm(None if bulk_mode else (request.POST or None), school=school)
+    bulk_form = BulkInviteForm(request.POST if bulk_mode else None, school=school)
+
+    if request.method == "POST" and not bulk_mode and form.is_valid():
         invite = form.save(commit=False)
-        invite.school = request.user.school
-        invite.invited_by = request.user
+        invite.school, invite.invited_by = school, request.user
         invite.save()
         # no email backend (out of scope) — admin copies the link
         link = request.build_absolute_uri(invite_url(invite))
-        messages.success(request, f"Invite created. Share this link: {link}")
+        messages.success(request, f"Invite created for {invite.email}. Share this link: {link}")
+        return redirect(_safe_next(request, reverse("accounts:invite_list")))
+
+    if request.method == "POST" and bulk_mode and bulk_form.is_valid():
+        role = bulk_form.cleaned_data["role"]
+        created = [AdminInvite.objects.create(school=school, email=e, role=role, invited_by=request.user)
+                   for e in bulk_form.cleaned_data["emails"]]
+        if created:
+            messages.success(request, f"Created {len(created)} invite{'s' if len(created) != 1 else ''}. "
+                                      "Copy each link from the list below.")
+        for email, reason in bulk_form.skipped:
+            messages.warning(request, f"Skipped {email}: {reason}.")
         return redirect("accounts:invite_list")
-    return render(request, "accounts/invite_user.html", {"form": form})
+
+    return render(request, "accounts/invite_user.html", {
+        "form": form, "bulk_form": bulk_form,
+        "mode": "bulk" if bulk_mode else "single",
+        "next": request.POST.get("next") or request.GET.get("next", ""),
+        "max_bulk": BulkInviteForm.MAX,
+    })
 
 
 def invite_url(invite):
@@ -127,7 +158,12 @@ def invite_url(invite):
 def invite_list(request):
     invites = (AdminInvite.objects.filter(school=request.user.school, accepted=False)
                .select_related("invited_by").order_by("-created_at"))
-    return render(request, "accounts/invite_list.html", {"invites": invites})
+    for inv in invites:
+        inv.link = request.build_absolute_uri(invite_url(inv))  # copy button on the list page
+    active = [i for i in invites if i.is_valid]
+    expired = [i for i in invites if not i.is_valid]  # expired or revoked
+    return render(request, "accounts/invite_list.html",
+                  {"invites": invites, "active": active, "expired": expired})
 
 
 @admin_required
@@ -184,12 +220,23 @@ def toggle_active(request, pk):
 @admin_required
 def school_settings(request):
     school = request.user.school
-    form = SchoolSettingsForm(request.POST or None, instance=school)
+
+    # join-code card posts on its own; only touches name (if sent) + code
+    if request.method == "POST" and "regenerate_join_code" in request.POST:
+        name = request.POST.get("name", "").strip()
+        if name:
+            school.name = name[:200]
+        school.join_code = make_join_code()
+        school.save(update_fields=["name", "join_code"])
+        messages.success(request, f"New join code: {school.join_code}. The old code no longer works.")
+        return redirect("accounts:school_settings")
+
+    old_logo = school.logo.name
+    form = SchoolSettingsForm(request.POST or None, request.FILES or None, instance=school)
     if request.method == "POST" and form.is_valid():
-        school = form.save(commit=False)
-        if form.cleaned_data["regenerate_join_code"]:
-            school.join_code = make_join_code()
-        school.save()
+        school = form.save()
+        if old_logo and old_logo != school.logo.name:
+            school.logo.storage.delete(old_logo)  # replaced or cleared: free the storage
         messages.success(request, "School settings saved.")
         return redirect("accounts:school_settings")
     return render(request, "accounts/school_settings.html", {"form": form, "school": school})
@@ -221,8 +268,3 @@ def switch_school(request):
 def exit_school(request):
     request.session.pop(SESSION_KEY, None)
     return redirect("accounts:switch_school")
-
-
-# Display the admin creation page
-def create_admin_page(request):
-    return render(request, "accounts/createadmin.html")

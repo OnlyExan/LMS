@@ -1,4 +1,8 @@
 """Superuser 'platform mode': act as admin of a chosen school (in memory only)."""
+from zoneinfo import ZoneInfo
+
+from django.utils import timezone
+
 from .models import School, User
 
 SESSION_KEY = "acting_school_id"
@@ -18,4 +22,10 @@ class ActingSchoolMiddleware:
                 user._acting = True
                 user.school, user.role = school, User.ADMIN
                 request.acting_school = school
+        # show dates/times in the school's time zone
+        school = getattr(user, "school", None) if user and user.is_authenticated else None
+        if school:
+            timezone.activate(ZoneInfo(school.timezone))
+        else:
+            timezone.deactivate()
         return self.get_response(request)

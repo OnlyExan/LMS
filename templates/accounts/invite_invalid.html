@@ -1,0 +1,28 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS | Invite unavailable</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+<main class="login-container">
+  <div class="login-card invite-header">
+    <div class="status-icon">{% if invite.accepted %}✓{% else %}!{% endif %}</div>
+
+    {% if invite.accepted %}
+      <h1>Invite already used</h1>
+      <p class="sub">This link was already used to create an account at <strong>{{ invite.school.name }}</strong>. Log in with that account instead.</p>
+      <a href="{% url 'accounts:login' %}" class="login-button link-button">Go to login</a>
+    {% else %}
+      <h1>This invite has expired</h1>
+      <p class="sub">Your invite to <strong>{{ invite.school.name }}</strong> expired or was cancelled on {{ invite.expires_at|date:"M j, Y" }}.
+        Ask {% if invite.invited_by %}{{ invite.invited_by.get_full_name|default:invite.invited_by.username }}{% else %}your school admin{% endif %} to send a new one.</p>
+      <a href="{% url 'accounts:login' %}" class="login-button link-button secondary">Back to login</a>
+    {% endif %}
+  </div>
+</main>
+</body>
+</html>

@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Manage Users{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div>
+      <h1>Manage Users</h1>
+      <p class="muted">{{ users|length }} user{{ users|length|pluralize }}{% if role %} · {{ role|capfirst }}s{% endif %}{% if q %} · matching “{{ q }}”{% endif %}</p>
+    </div>
+    <a class="btn-primary" href="{% url 'accounts:invite_user' %}" data-open-invite>+ Invite user</a>
+  </div>
+
+  {% include "accounts/_admin_tabs.html" %}
+
+  {# filters: role chips + search, both GET so links/bookmarks work #}
+  <div class="toolbar">
+    <div class="chips">
+      <a class="chip{% if not role %} active{% endif %}" href="?q={{ q|urlencode }}">All</a>
+      <a class="chip{% if role == 'student' %} active{% endif %}" href="?role=student&q={{ q|urlencode }}">Students</a>
+      <a class="chip{% if role == 'instructor' %} active{% endif %}" href="?role=instructor&q={{ q|urlencode }}">Instructors</a>
+      <a class="chip{% if role == 'admin' %} active{% endif %}" href="?role=admin&q={{ q|urlencode }}">Admins</a>
+    </div>
+    <form method="get" class="search">
+      {% if role %}<input type="hidden" name="role" value="{{ role }}">{% endif %}
+      <input type="search" name="q" value="{{ q }}" placeholder="Search name, username, email…">
+      <button class="btn-outline">Search</button>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr><th>User</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th></th></tr>
+      </thead>
+      <tbody>
+      {% for u in users %}
+        <tr{% if not u.is_active %} class="row-inactive"{% endif %}>
+          <td>
+            <div class="user-cell">
+              <div class="avatar">{{ u.first_name|default:u.username|slice:":1"|upper }}{{ u.last_name|slice:":1"|upper }}</div>
+              <div>
+                <strong>{{ u.get_full_name|default:u.username }}</strong>{% if u == request.user %} <span class="you">You</span>{% endif %}
+                <div class="muted small">@{{ u.username }}</div>
+              </div>
+            </div>
+          </td>
+          <td>{{ u.email|default:"—" }}</td>
+          <td>
+            {% if u == request.user %}
+              <span class="role-pill role-{{ u.role }}">{{ u.get_role_display }}</span>
+            {% else %}
+              {# auto-submits on change; server validates the role #}
+              <form method="post" action="{% url 'accounts:change_role' u.pk %}">
+                {% csrf_token %}
+                <select name="role" class="role-select" onchange="this.form.submit()">
+                  <option value="student" {% if u.role == 'student' %}selected{% endif %}>Student</option>
+                  <option value="instructor" {% if u.role == 'instructor' %}selected{% endif %}>Instructor</option>
+                  <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Admin</option>
+                </select>
+              </form>
+            {% endif %}
+          </td>
+          <td>
+            {% if u.is_active %}<span class="status status-on">Active</span>{% else %}<span class="status status-off">Deactivated</span>{% endif %}
+          </td>
+          <td class="muted small">{{ u.date_joined|date:"M j, Y" }}</td>
+          <td class="actions-cell">
+            {% if u != request.user %}
+            <form method="post" action="{% url 'accounts:toggle_active' u.pk %}"
+                  {% if u.is_active %}onsubmit="return confirm('Deactivate {{ u.username }}? They won\'t be able to log in.');"{% endif %}>
+              {% csrf_token %}
+              {% if u.is_active %}
+                <button class="btn-outline btn-sm btn-danger-outline">Deactivate</button>
+              {% else %}
+                <button class="btn-outline btn-sm">Reactivate</button>
+              {% endif %}
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty-row">No users found{% if q or role %} — <a href="?">clear filters</a>{% endif %}.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

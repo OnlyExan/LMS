@@ -1,0 +1,35 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS | Create School</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+<main class="login-container">
+  <div class="login-card">
+    <div class="logo"><span class="logo-text">LMS</span></div>
+    <p style="text-align:center;margin:-25px 0 25px;color:#6b7280;">Create a school and its first admin account</p>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for field in form %}
+        <div class="input-group">
+          <input type="{{ field.field.widget.input_type|default:'text' }}" id="{{ field.id_for_label }}"
+                 name="{{ field.html_name }}" value="{% if field.field.widget.input_type != 'password' %}{{ field.value|default:'' }}{% endif %}" placeholder=" "
+                 {% if field.field.required %}required{% endif %}>
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        </div>
+        {% for e in field.errors %}<p style="color:#dc2626;font-size:12px;margin:-18px 0 18px;">{{ e }}</p>{% endfor %}
+      {% endfor %}
+      {% for e in form.non_field_errors %}<p style="color:#dc2626;font-size:13px;">{{ e }}</p>{% endfor %}
+      <button type="submit" class="login-button">Create School</button>
+    </form>
+
+    <div class="admin-link"><a href="{% url 'accounts:login' %}">Back to login</a></div>
+  </div>
+</main>
+</body>
+</html>

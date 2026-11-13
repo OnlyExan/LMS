@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}School Settings{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page">
+  <div class="admin-header">
+    <div>
+      <h1>Admin</h1>
+      <p class="muted">{{ school.name }} · created {{ school.created_at|date:"M j, Y" }}</p>
+    </div>
+    <a class="btn-primary" href="{% url 'accounts:invite_user' %}" data-open-invite>+ Invite user</a>
+  </div>
+
+  {% include "accounts/_admin_tabs.html" %}
+
+  <div class="settings-layout">
+    {# one form for every setting except the join code #}
+    <form method="post" enctype="multipart/form-data" class="settings-main">
+      {% csrf_token %}
+      {% if form.non_field_errors %}<div class="flash flash-error">{{ form.non_field_errors|join:" " }}</div>{% endif %}
+
+      {# ---- branding ---- #}
+      <section class="form-card">
+        <div>
+          <h2 class="card-title">Branding</h2>
+          <p class="muted small">How your school looks to everyone who signs in.</p>
+        </div>
+
+        <label class="field">
+          <span>School name</span>
+          <input type="text" name="name" value="{{ form.name.value|default:'' }}" required maxlength="200">
+          {% for e in form.name.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+        </label>
+
+        <div class="field">
+          <span>Logo</span>
+          <div class="logo-row">
+            <div class="logo-preview" id="logoPreview">
+              {% if school.logo %}<img src="{{ school.logo.url }}" alt="Current logo">{% else %}<span>{{ school.name|slice:":2"|upper }}</span>{% endif %}
+            </div>
+            <div class="logo-actions">
+              <label class="btn-outline btn-sm file-btn">
+                {% if school.logo %}Replace{% else %}Upload{% endif %} logo
+                <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/gif" id="logoInput" hidden>
+              </label>
+              {% if school.logo %}
+              <label class="check small"><input type="checkbox" name="logo-clear"> Remove logo</label>
+              {% endif %}
+              <span class="muted small">PNG, JPG, WebP or GIF · under 2 MB · shows in the top bar</span>
+            </div>
+          </div>
+          {% for e in form.logo.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+        </div>
+
+        <label class="field">
+          <span>Brand color</span>
+          <div class="color-row">
+            <input type="color" name="brand_color" id="brandColor" value="{{ form.brand_color.value|default:'#2563eb' }}">
+            <code id="brandHex">{{ form.brand_color.value|default:'#2563eb' }}</code>
+            <button type="button" class="link-muted reset-btn" onclick="setBrand('#2563eb')">Reset to default</button>
+          </div>
+          <span class="muted small">Used for the sidebar, buttons and highlights. Preview updates live.</span>
+          {% for e in form.brand_color.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+        </label>
+      </section>
+
+      {# ---- enrollment & access ---- #}
+      <section class="form-card">
+        <div>
+          <h2 class="card-title">Enrollment &amp; access</h2>
+          <p class="muted small">Control how people join your school.</p>
+        </div>
+
+        <label class="toggle-row">
+          <div>
+            <strong>Allow students to sign up with the join code</strong>
+            <p class="muted small">Turn off to make the school invite-only. Existing students aren't affected.</p>
+          </div>
+          <input type="checkbox" name="allow_self_signup" class="switch" {% if form.allow_self_signup.value %}checked{% endif %}>
+        </label>
+
+        <label class="field">
+          <span>Invite links expire after</span>
+          <select name="invite_expiry_days">
+            {% for val, label in form.fields.invite_expiry_days.choices %}
+              <option value="{{ val }}" {% if form.invite_expiry_days.value|stringformat:"s" == val|stringformat:"s" %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+          </select>
+          <span class="muted small">Applies to new invites. Already-sent links keep their original expiry.</span>
+        </label>
+      </section>
+
+      {# ---- academic ---- #}
+      <section class="form-card">
+        <div>
+          <h2 class="card-title">Academic</h2>
+          <p class="muted small">Defaults that affect how dates are shown.</p>
+        </div>
+
+        <label class="field">
+          <span>Time zone</span>
+          <select name="timezone">
+            {% for val, label in form.fields.timezone.choices %}
+              <option value="{{ val }}" {% if form.timezone.value == val %}selected{% endif %}>{{ label }}</option>
+              {% if val == "UTC" %}<option disabled>──────────</option>{% endif %}
+            {% endfor %}
+          </select>
+          <span class="muted small">Due dates and timestamps show in this time zone for everyone in the school.</span>
+          {% for e in form.timezone.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+        </label>
+      </section>
+
+      <div class="save-bar">
+        <button class="btn-primary">Save settings</button>
+      </div>
+    </form>
+
+    {# ---- join code (own form) ---- #}
+    <aside class="form-card settings-side">
+      <div>
+        <h2 class="card-title">Student join code</h2>
+        <p class="muted small">
+          {% if school.allow_self_signup %}Students enter this on the sign-up page.{% else %}<strong>Sign-up is off</strong> — this code won't work until you turn it back on.{% endif %}
+        </p>
+      </div>
+      <div class="join-box{% if not school.allow_self_signup %} is-off{% endif %}">
+        <code id="joinCode">{{ school.join_code }}</code>
+        <button type="button" class="btn-outline btn-sm" onclick="copyCode(this)">Copy</button>
+      </div>
+      <form method="post" onsubmit="return confirm('Generate a new join code? The old code will stop working right away.');">
+        {% csrf_token %}
+        <input type="hidden" name="regenerate_join_code" value="on">
+        <button class="btn-outline btn-danger-outline btn-block">Regenerate code</button>
+      </form>
+    </aside>
+  </div>
+</div>
+
+<script>
+  // copy join code
+  function copyCode(btn) {
+    navigator.clipboard.writeText(document.getElementById("joinCode").textContent.trim())
+      .then(() => { btn.textContent = "Copied!"; setTimeout(() => btn.textContent = "Copy", 1500); });
+  }
+
+  // live brand color preview (not saved until "Save settings")
+  const picker = document.getElementById("brandColor"), hex = document.getElementById("brandHex");
+  function setBrand(c) {
+    picker.value = c; hex.textContent = c;
+    document.documentElement.style.setProperty("--brand", c);
+  }
+  picker.addEventListener("input", e => setBrand(e.target.value));
+
+  // logo preview before upload
+  document.getElementById("logoInput").addEventListener("change", e => {
+    const f = e.target.files[0]; if (!f) return;
+    const img = document.createElement("img"); img.src = URL.createObjectURL(f);
+    const box = document.getElementById("logoPreview"); box.innerHTML = ""; box.appendChild(img);
+  });
+</script>
+{% endblock %}

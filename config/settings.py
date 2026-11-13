@@ -94,6 +94,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 TESTING = len(sys.argv) > 1 and sys.argv[1] == "test"
+TEST_RUNNER = "config.test_runner.PassFailRunner"  # PASSED/FAILED per test + summary
 
 # SQLite by default; set POSTGRES_DB (+ user/pass/host) in .env to switch
 # tests always use SQLite so they never touch Supabase
@@ -160,7 +161,7 @@ MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # HTTPS hardening — prod only (Vercel terminates TLS and sets X-Forwarded-Proto)
-if not DEBUG:
+if not DEBUG and not TESTING:  # tests use plain http
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
     SESSION_COOKIE_SECURE = True

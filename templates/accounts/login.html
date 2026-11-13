@@ -48,8 +48,10 @@
 
   <!-- Optional Admin Creation Link -->
   <div class="admin-link">
-    <a href="{% url 'create_admin' %}">
-      Create Admin
+    <a href="{% url 'accounts:register' %}">Student? Sign up with a join code</a>
+    <span class="dot">·</span>
+    <a href="{% url 'accounts:create_school' %}">
+      Create a School
     </a>
   </div>
 

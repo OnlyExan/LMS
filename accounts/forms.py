@@ -1,6 +1,10 @@
+import re
+
 from django import forms
+from django.core.validators import validate_email
+from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm
-from .models import School, User, AdminInvite
+from .models import TIMEZONE_CHOICES, School, User, AdminInvite
 
 
 class _BaseUserForm(UserCreationForm):
@@ -20,6 +24,8 @@ class RegisterForm(_BaseUserForm):
             self.school = School.objects.get(join_code=code)
         except School.DoesNotExist:
             raise forms.ValidationError("Invalid join code.")
+        if not self.school.allow_self_signup:
+            raise forms.ValidationError("This school is invite-only. Ask your admin for an invite link.")
         return code
 
     def save(self, commit=True):
@@ -45,12 +51,77 @@ class SchoolCreateForm(_BaseUserForm):
         return user
 
 
+INVITE_ROLES = [(User.STUDENT, "Student"), (User.INSTRUCTOR, "Instructor"), (User.ADMIN, "Admin")]
+
+
+def _invite_conflict(school, email):
+    """Why this email can't be invited to `school`, or None."""
+    if school is None:
+        return None
+    if User.objects.filter(school=school, email__iexact=email).exists():
+        return "already a member"
+    pending = AdminInvite.objects.filter(school=school, email__iexact=email, accepted=False,
+                                         expires_at__gt=timezone.now())
+    if pending.exists():
+        return "already has a pending invite"
+    return None
+
+
 class InviteForm(forms.ModelForm):
-    role = forms.ChoiceField(choices=[(User.INSTRUCTOR, "Instructor"), (User.ADMIN, "Admin")])
+    role = forms.ChoiceField(choices=INVITE_ROLES)
 
     class Meta:
         model = AdminInvite
         fields = ("email", "role")
+
+    def __init__(self, *args, school=None, **kwargs):
+        self.school = school
+        super().__init__(*args, **kwargs)
+
+    def clean_email(self):
+        email = self.cleaned_data["email"].strip().lower()
+        reason = _invite_conflict(self.school, email)
+        if reason:
+            raise forms.ValidationError(f"{email} is {reason}.")
+        return email
+
+
+class BulkInviteForm(forms.Form):
+    """Many emails, one role. Emails split on commas, semicolons, spaces or new lines."""
+    MAX = 50
+    emails = forms.CharField(widget=forms.Textarea)
+    role = forms.ChoiceField(choices=INVITE_ROLES)
+
+    def __init__(self, *args, school=None, **kwargs):
+        self.school = school
+        self.skipped = []  # (email, reason) — reported back, not errors
+        super().__init__(*args, **kwargs)
+
+    def clean_emails(self):
+        raw = re.split(r"[\s,;]+", self.cleaned_data["emails"])
+        emails, bad = [], []
+        for e in (x.strip().lower() for x in raw if x.strip()):
+            try:
+                validate_email(e)
+            except forms.ValidationError:
+                bad.append(e)
+                continue
+            if e not in emails:
+                emails.append(e)
+        if bad:
+            raise forms.ValidationError("Not valid emails: " + ", ".join(bad))
+        if not emails:
+            raise forms.ValidationError("Enter at least one email.")
+        if len(emails) > self.MAX:
+            raise forms.ValidationError(f"Max {self.MAX} emails at a time.")
+        valid = []
+        for e in emails:
+            reason = _invite_conflict(self.school, e)
+            if reason:
+                self.skipped.append((e, reason))
+            else:
+                valid.append(e)
+        return valid
 
 
 class InviteAcceptForm(_BaseUserForm):
@@ -76,8 +147,19 @@ class RoleChangeForm(forms.Form):
 
 
 class SchoolSettingsForm(forms.ModelForm):
-    regenerate_join_code = forms.BooleanField(required=False)
+    LOGO_MAX_MB = 2
+    timezone = forms.ChoiceField(choices=TIMEZONE_CHOICES)
 
     class Meta:
         model = School
-        fields = ("name",)
+        fields = ("name", "logo", "brand_color", "allow_self_signup", "invite_expiry_days", "timezone")
+        widgets = {"brand_color": forms.TextInput(attrs={"type": "color"})}
+
+    def clean_logo(self):
+        logo = self.cleaned_data.get("logo")
+        if logo and hasattr(logo, "size") and logo.size > self.LOGO_MAX_MB * 1024 * 1024:
+            raise forms.ValidationError(f"Logo must be under {self.LOGO_MAX_MB} MB.")
+        return logo
+
+    def clean_brand_color(self):
+        return self.cleaned_data["brand_color"].lower()

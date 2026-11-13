@@ -1,35 +1,78 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Platform — Schools{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/platform.css' %}">{% endblock %}
+
 {% block content %}
-  <h1>Platform view</h1>
-  <p>Pick a school to browse it as an admin.</p>
-
-  <table>
-    <thead><tr><th>School</th><th>Join code</th><th>Members</th><th>Courses</th><th></th></tr></thead>
-    <tbody>
-    {% for s in schools %}
-      <tr>
-        <td>{{ s.name }}{% if acting_school and acting_school.pk == s.pk %} <em>(current)</em>{% endif %}</td>
-        <td><code>{{ s.join_code }}</code></td>
-        <td>{{ s.member_count }}</td>
-        <td>{{ s.course_count }}</td>
-        <td>
-          <form method="post">{% csrf_token %}
-            <input type="hidden" name="school" value="{{ s.pk }}">
-            <button>View as admin</button>
-          </form>
-        </td>
-      </tr>
-    {% empty %}
-      <tr><td colspan="5">No schools yet — run <code>python manage.py seed_demo</code>.</td></tr>
-    {% endfor %}
-    </tbody>
-  </table>
-
-  <p><a href="{% url 'admin:index' %}">Django admin</a></p>
+<div class="platform">
+  <div class="platform-header">
+    <div>
+      <h1>Platform</h1>
+      <p class="muted">{{ schools|length }} school{{ schools|length|pluralize }} · pick one to browse it as its admin</p>
+    </div>
+    <div class="platform-actions">
+      <input type="search" id="schoolSearch" placeholder="Search schools…" oninput="filterSchools(this.value)">
+      <a class="btn-outline" href="{% url 'admin:index' %}">Django admin</a>
+    </div>
+  </div>
 
   {% if acting_school %}
-    <form method="post" action="{% url 'accounts:exit_school' %}">{% csrf_token %}<button>Exit {{ acting_school.name }}</button></form>
+  <div class="current-callout">
+    <span>Currently viewing <strong>{{ acting_school.name }}</strong></span>
+    <div>
+      <a class="btn-primary" href="{% url 'dashboard' %}">Go to dashboard</a>
+      <form method="post" action="{% url 'accounts:exit_school' %}">
+        {% csrf_token %}<button class="btn-outline">Exit</button>
+      </form>
+    </div>
+  </div>
   {% endif %}
-  <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button>Log out</button></form>
+
+  <div class="school-grid">
+    {% for s in schools %}
+    <div class="school-card{% if acting_school and acting_school.pk == s.pk %} is-current{% endif %}" data-name="{{ s.name|lower }}">
+      <div class="school-top">
+        <div class="school-avatar" style="background: {{ s.brand_color }}">{% if s.logo %}<img src="{{ s.logo.url }}" alt="">{% else %}{{ s.name|slice:":2"|upper }}{% endif %}</div>
+        <div class="school-title">
+          <h2>{{ s.name }}</h2>
+          <span class="muted">Since {{ s.created_at|date:"M j, Y" }}</span>
+        </div>
+        {% if acting_school and acting_school.pk == s.pk %}<span class="badge">Current</span>{% endif %}
+      </div>
+
+      <div class="school-stats">
+        <div><strong>{{ s.member_count }}</strong><span>Members</span></div>
+        <div><strong>{{ s.course_count }}</strong><span>Courses</span></div>
+        <div><code>{{ s.join_code }}</code><span>Join code</span></div>
+      </div>
+
+      <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="school" value="{{ s.pk }}">
+        <button class="btn-primary btn-block">View as admin</button>
+      </form>
+    </div>
+    {% empty %}
+    <div class="empty">
+      <h2>No schools yet</h2>
+      <p class="muted">Run <code>python manage.py seed_demo</code> or create one from the login page.</p>
+    </div>
+    {% endfor %}
+  </div>
+  <p id="noMatch" class="muted" hidden>No schools match your search.</p>
+</div>
+
+<script>
+  // client-side filter by school name
+  function filterSchools(q) {
+    q = q.trim().toLowerCase();
+    let shown = 0;
+    document.querySelectorAll(".school-card").forEach(c => {
+      const hit = c.dataset.name.includes(q);
+      c.hidden = !hit;
+      if (hit) shown++;
+    });
+    document.getElementById("noMatch").hidden = shown > 0;
+  }
+</script>
 {% endblock %}

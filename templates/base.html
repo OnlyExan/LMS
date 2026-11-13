@@ -7,12 +7,113 @@
   <title>{% block title %}LMS{% endblock %}</title>
   {% load static %}
   <link rel="stylesheet" href="{% static 'css/main.css' %}">
+  {% if user.school %}<style>:root { --brand: {{ user.school.brand_color }}; }</style>{% endif %}
   {% block extra_head %}{% endblock %}
 </head>
-<body>
-  <nav><!-- sidebar/nav goes here, written once --></nav>
+<body{% if user.is_authenticated %} class="with-sidebar"{% endif %}>
+  {% if user.is_authenticated %}
+  <header class="topbar">
+    <a class="topbar-brand" href="{% url 'dashboard' %}">
+      {% if user.school.logo %}<img src="{{ user.school.logo.url }}" alt="{{ user.school.name }} logo" class="topbar-logo">{% else %}LMS{% endif %}
+    </a>
+    <span class="topbar-school">
+      {% if user.school %}{{ user.school.name }}{% else %}Platform admin{% endif %}
+    </span>
+    <div class="topbar-user">
+      <span>Hi, {{ user.first_name|default:user.username }}</span>
+      {# logout is POST-only in Django 5 #}
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}<button type="submit" class="logout-btn">Log out</button>
+      </form>
+    </div>
+  </header>
+  {% if request.acting_school %}
+  <div class="acting-banner">
+    Viewing {{ request.acting_school.name }} as admin
+    <form method="post" action="{% url 'accounts:exit_school' %}">
+      {% csrf_token %}<button type="submit">Exit</button>
+    </form>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  {% if user.is_authenticated %}
+  {% with rm=request.resolver_match %}
+  <nav class="sidenav">
+    {% if user.school %}{# school pages only; superusers see these after picking a school #}
+    <a href="{% url 'dashboard' %}" class="sidenav-item{% if rm.url_name == 'dashboard' %} active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M4 18a8 8 0 1 1 16 0"/><path d="M12 18l4-6"/><circle cx="12" cy="18" r="1.2"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="{% url 'courses:course_list' %}" class="sidenav-item{% if rm.app_name == 'courses' %} active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg>
+      <span>Courses</span>
+    </a>
+    {% if user.role == "admin" %}
+    <a href="{% url 'accounts:school_settings' %}" class="sidenav-item{% if '/accounts/admin/' in request.path %} active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
+      <span>Admin</span>
+    </a>
+    {% endif %}
+    {% endif %}
+    {% if user.is_superuser %}
+    {% if request.acting_school %}
+    {# exits "view as admin" mode, then lands on the platform page #}
+    <form method="post" action="{% url 'accounts:exit_school' %}" class="sidenav-form">
+      {% csrf_token %}
+      <button type="submit" class="sidenav-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>
+        <span>Platform</span>
+      </button>
+    </form>
+    {% else %}
+    <a href="{% url 'accounts:switch_school' %}" class="sidenav-item{% if rm.url_name == 'switch_school' %} active{% endif %}">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18"/></svg>
+      <span>Platform</span>
+    </a>
+    {% endif %}
+    {% endif %}
+    <button type="button" class="sidenav-collapse" aria-label="Collapse menu" onclick="toggleNav()">
+      <svg viewBox="0 0 24 24"><path d="M4 4v16"/><path d="M20 12H9"/><path d="M13 8l-4 4 4 4"/></svg>
+    </button>
+  </nav>
+  {% endwith %}
+  <script>
+    // remembers collapsed state per browser
+    function toggleNav() {
+      document.body.classList.toggle("nav-collapsed");
+      try { localStorage.setItem("navCollapsed", document.body.classList.contains("nav-collapsed")); } catch (e) {}
+    }
+    try { if (localStorage.getItem("navCollapsed") === "true") document.body.classList.add("nav-collapsed"); } catch (e) {}
+  </script>
+  {% endif %}
+
+  {% if messages %}
+  <div class="flash-list">
+    {% for m in messages %}<div class="flash flash-{{ m.tags }}">{{ m }}</div>{% endfor %}
+  </div>
+  {% endif %}
+
   <main>
     {% block content %}{% endblock %}
   </main>
+
+  {% if user.school and user.role == "admin" %}
+  {% include "accounts/_invite_modal.html" %}
+  <script>
+    // any element with data-open-invite opens the invite pop-up (falls back to its href without JS)
+    document.addEventListener("click", function (e) {
+      const t = e.target.closest("[data-open-invite]");
+      if (!t) return;
+      e.preventDefault();
+      const d = document.getElementById("inviteModal");
+      // optional prefill (e.g. Re-invite on the invites list)
+      d.querySelector("input[name=email]").value = t.dataset.email || "";
+      d.querySelector("select[name=role]").value = t.dataset.role || "instructor";
+      d.showModal();
+      d.querySelector("input[name=email]").focus();
+    });
+  </script>
+  {% endif %}
 </body>
 </html>

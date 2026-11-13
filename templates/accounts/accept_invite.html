@@ -1,0 +1,54 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS | Join {{ invite.school.name }}</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+  <style>:root { --brand: {{ invite.school.brand_color }}; }</style>
+</head>
+<body>
+<main class="login-container">
+  <div class="login-card">
+
+    {# school branding so the person knows who invited them #}
+    <div class="invite-header">
+      {% if invite.school.logo %}
+        <img src="{{ invite.school.logo.url }}" alt="{{ invite.school.name }} logo" class="school-logo">
+      {% else %}
+        <div class="school-initials">{{ invite.school.name|slice:":2"|upper }}</div>
+      {% endif %}
+      <h1>Join {{ invite.school.name }}</h1>
+      <p class="sub">
+        {% if invite.invited_by %}{{ invite.invited_by.get_full_name|default:invite.invited_by.username }} invited you{% else %}You've been invited{% endif %}
+        as <span class="role-badge">{{ invite.get_role_display }}</span>
+      </p>
+      <p class="sub small">This link expires {{ invite.expires_at|date:"M j, Y \a\t g:i A" }}.</p>
+    </div>
+
+    <form method="post">
+      {% csrf_token %}
+      {% for e in form.non_field_errors %}<p class="error">{{ e }}</p>{% endfor %}
+
+      {% for field in form %}
+        <div class="input-group">
+          <input type="{{ field.field.widget.input_type|default:'text' }}" id="{{ field.id_for_label }}"
+                 name="{{ field.html_name }}"
+                 value="{% if field.field.widget.input_type != 'password' %}{{ field.value|default:'' }}{% endif %}"
+                 placeholder=" " {% if field.field.required %}required{% endif %}>
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        </div>
+        {% for e in field.errors %}<p class="field-err">{{ e }}</p>{% endfor %}
+      {% endfor %}
+
+      <button type="submit" class="login-button brand-button">Create account &amp; join</button>
+    </form>
+
+    <div class="admin-link">
+      <a href="{% url 'accounts:login' %}">Already have an account? Log in</a>
+    </div>
+  </div>
+</main>
+</body>
+</html>
