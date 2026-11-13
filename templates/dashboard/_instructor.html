@@ -1,0 +1,87 @@
+{# LSM-87: instructor dashboard block. Context: school, courses (.student_count .ungraded), ungraded_count, student_total, due_soon (.submitted) #}
+<section class="dash">
+  <header class="dash-header">
+    <div>
+      <h1>Welcome back, {{ user.first_name|default:user.username }}</h1>
+      <p class="muted">{{ school.name }} · Instructor dashboard</p>
+    </div>
+    <a class="btn" href="{% url 'courses:course_create' %}">+ New course</a>
+  </header>
+
+  <div class="stat-grid">
+    <a class="stat-card" href="{% url 'courses:course_list' %}?mine=1">
+      <span class="stat-num">{{ courses|length }}</span>
+      <span class="stat-label">Course{{ courses|length|pluralize }} taught</span>
+    </a>
+    <div class="stat-card">
+      <span class="stat-num">{{ student_total }}</span>
+      <span class="stat-label">Student{{ student_total|pluralize }}</span>
+    </div>
+    <a class="stat-card {% if ungraded_count %}stat-alert{% endif %}" href="{% url 'assignments:submission_list' %}?status=ungraded">
+      <span class="stat-num">{{ ungraded_count }}</span>
+      <span class="stat-label">To grade</span>
+    </a>
+    <a class="stat-card" href="{% url 'assignments:assignment_list' %}?upcoming=1">
+      <span class="stat-num">{{ due_soon|length }}</span>
+      <span class="stat-label">Due this week</span>
+    </a>
+  </div>
+
+  {# ---- courses ---- #}
+  <h2>My courses</h2>
+  <div class="course-grid">
+    {% for c in courses %}
+      <article class="course-card">
+        <a class="course-head" href="{% url 'courses:course_detail' c.pk %}">
+          <span class="course-code">{{ c.code }}</span>
+          <span class="course-title">{{ c.title }}</span>
+          <span class="muted">{{ c.term }}</span>
+        </a>
+        <div class="course-meta">
+          <span>{{ c.student_count }} student{{ c.student_count|pluralize }}</span>
+          {% if c.ungraded %}
+            <a class="badge-alert" href="{% url 'assignments:submission_list' %}?status=ungraded&course={{ c.pk }}">{{ c.ungraded }} to grade</a>
+          {% else %}
+            <span class="badge-ok">All graded</span>
+          {% endif %}
+        </div>
+        <div class="course-links">
+          <a href="{% url 'assignments:assignment_create' c.pk %}">+ Assignment</a>
+          <a href="{% url 'courses:roster' c.pk %}">Roster</a>
+          <a href="{% url 'assignments:gradebook' c.pk %}">Gradebook</a>
+        </div>
+      </article>
+    {% empty %}
+      <div class="empty-card">
+        <p>You're not teaching any courses yet.</p>
+        <a class="btn" href="{% url 'courses:course_create' %}">Create your first course</a>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ---- due this week ---- #}
+  <h2>Due in the next 7 days</h2>
+  {% if due_soon %}
+    <ul class="due-list">
+      {% for a in due_soon %}
+        <li>
+          <a href="{% url 'assignments:assignment_detail' a.pk %}">
+            <strong>{{ a.title }}</strong>
+            <span class="muted">{{ a.course.code }}</span>
+          </a>
+          <span class="due-when">due in {{ a.due_date|timeuntil }} · {{ a.due_date|date:"D M j, g:i A" }}</span>
+          <span class="muted">{{ a.submitted }} submitted</span>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">Nothing due this week.</p>
+  {% endif %}
+
+  <h2>Quick actions</h2>
+  <div class="actions">
+    <a class="btn" href="{% url 'assignments:submission_list' %}?status=ungraded">Grading queue</a>
+    <a class="btn btn-secondary" href="{% url 'assignments:assignment_list' %}">All assignments</a>
+    <a class="btn btn-secondary" href="{% url 'courses:course_list' %}">Browse courses</a>
+  </div>
+</section>

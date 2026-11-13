@@ -96,15 +96,27 @@ def dashboard(request):
                            .select_related("submission__assignment__course")),
         )
     elif user.role == User.INSTRUCTOR:
-        from assignments.models import Submission
-        from courses.models import Course
+        from assignments.models import Assignment, Submission
+        from courses.models import Course, Enrollment
+        # distinct: two joined counts would otherwise multiply each other
         courses = (Course.objects.filter(school=user.school, instructor=user)
-                   .annotate(student_count=Count("enrollments",
-                                                 filter=Q(enrollments__status="active"))))
+                   .annotate(student_count=Count("enrollments", distinct=True,
+                                                 filter=Q(enrollments__status="active")),
+                             ungraded=Count("assignments__submissions", distinct=True,
+                                            filter=Q(assignments__submissions__grade__isnull=True)))
+                   .order_by("-term", "code"))
         ctx.update(
             courses=courses,
             ungraded_count=Submission.objects.filter(
                 assignment__course__instructor=user, grade__isnull=True).count(),
+            student_total=Enrollment.objects.filter(course__in=courses, status=Enrollment.ACTIVE)
+                                            .values("student").distinct().count(),
+            # due in next 7 days, with how many students turned it in
+            due_soon=(Assignment.objects
+                      .filter(course__in=courses, due_date__gte=now, due_date__lte=now + timedelta(days=7))
+                      .select_related("course")
+                      .annotate(submitted=Count("submissions", distinct=True))
+                      .order_by("due_date")),
         )
     else:  # admin
         from courses.models import Course
