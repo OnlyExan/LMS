@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{% if course %}Edit {{ course.code }}{% else %}New course{% endif %}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page narrow">
+  {% if course %}
+    <a href="{% url 'courses:course_detail' course.pk %}" class="back-link">‹ Back to {{ course.code }}</a>
+  {% else %}
+    <a href="{% url 'courses:course_list' %}" class="back-link">‹ Back to courses</a>
+  {% endif %}
+
+  <div class="admin-header">
+    <div>
+      <h1>{% if course %}Edit {{ course.code }}{% else %}New course{% endif %}</h1>
+      <p class="muted">{% if course %}Update details for this term.{% else %}Set up a course for your school.{% endif %}</p>
+    </div>
+  </div>
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {% for e in form.non_field_errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+
+    <label class="field">
+      <span>Course code</span>
+      <input type="text" name="code" value="{{ form.code.value|default:'' }}" required maxlength="20" placeholder="CSE4050">
+      {% for e in form.code.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Title</span>
+      <input type="text" name="title" value="{{ form.title.value|default:'' }}" required maxlength="200">
+      {% for e in form.title.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Term</span>
+      <input type="text" name="term" value="{{ form.term.value|default:'' }}" required maxlength="50" placeholder="Fall 2026">
+      {% for e in form.term.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Description</span>
+      <textarea name="description">{{ form.description.value|default:'' }}</textarea>
+      {% for e in form.description.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </label>
+
+    {# admins pick instructor; instructors are set on the server #}
+    {% if user.role == "admin" %}
+      <label class="field">
+        <span>Instructor</span>
+        <select name="instructor">
+          {% for u in form.fields.instructor.queryset %}
+            <option value="{{ u.pk }}" {% if form.instructor.value|stringformat:"s" == u.pk|stringformat:"s" %}selected{% endif %}>
+              {{ u.get_full_name|default:u.username }}
+            </option>
+          {% endfor %}
+        </select>
+        {% for e in form.instructor.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+      </label>
+    {% endif %}
+
+    <div class="form-foot">
+      <span class="muted small">Code must be unique for each term in your school.</span>
+      <div>
+        {% if course %}
+          <button type="submit" class="btn-primary">Save changes</button>
+          <a class="btn-outline" href="{% url 'courses:course_detail' course.pk %}">Cancel</a>
+        {% else %}
+          <button type="submit" class="btn-primary">Create course</button>
+          <a class="btn-outline" href="{% url 'courses:course_list' %}">Cancel</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
