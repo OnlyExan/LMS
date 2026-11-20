@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}My grades{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dash">
+  <header class="dash-header">
+    <div>
+      <h1>My grades</h1>
+      <p class="muted">{{ grades|length }} graded assignment{{ grades|length|pluralize }}</p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'courses:course_list' %}?mine=1">My courses</a>
+  </header>
+
+  {% regroup grades by submission.assignment.course as by_course %}
+  {% for group in by_course %}
+    <h2 class="section-title">{{ group.grouper.code }} — {{ group.grouper.title }}</h2>
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr><th>Assignment</th><th>Points</th><th>Percent</th><th>Feedback</th></tr>
+        </thead>
+        <tbody>
+        {% for g in group.list %}
+          <tr>
+            <td><strong>{{ g.submission.assignment.title }}</strong></td>
+            <td>{{ g.points_earned|floatformat:"-2" }} pts</td>
+            <td>{{ g.percentage|floatformat:1 }}%</td>
+            <td>{% if g.feedback %}{{ g.feedback|linebreaksbr }}{% else %}<span class="muted">—</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% empty %}
+    <div class="empty-card">
+      <p>No grades yet.</p>
+      <a class="btn" href="{% url 'assignments:assignment_list' %}">View assignments</a>
+    </div>
+  {% endfor %}
+</section>
+{% endblock %}

@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Submissions{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dash">
+  <header class="dash-header">
+    <div>
+      <h1>Grading queue</h1>
+      <p class="muted">{{ submissions|length }} submission{{ submissions|length|pluralize }} · {{ status|default:"ungraded" }}</p>
+    </div>
+    <a class="btn btn-secondary" href="{% url 'assignments:assignment_list' %}">All assignments</a>
+  </header>
+
+  {# ungraded / graded / all chips #}
+  <div class="toolbar">
+    <div class="chips">
+      <a class="chip{% if status == 'ungraded' or not status %} active{% endif %}"
+         href="?status=ungraded{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}{% if filters.course %}&course={{ filters.course }}{% endif %}">Ungraded</a>
+      <a class="chip{% if status == 'graded' %} active{% endif %}"
+         href="?status=graded{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}{% if filters.course %}&course={{ filters.course }}{% endif %}">Graded</a>
+      <a class="chip{% if status == 'all' %} active{% endif %}"
+         href="?status=all{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}{% if filters.course %}&course={{ filters.course }}{% endif %}">All</a>
+    </div>
+    <form method="get" class="search">
+      <input type="hidden" name="status" value="{{ status }}">
+      {% if filters.course %}<input type="hidden" name="course" value="{{ filters.course }}">{% endif %}
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Search student or assignment…">
+      <button class="btn-outline">Search</button>
+    </form>
+  </div>
+
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Student</th><th>Assignment</th><th>Course</th><th>Submitted</th><th>Grade</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for s in submissions %}
+        <tr>
+          <td>
+            <strong>{{ s.student.get_full_name|default:s.student.username }}</strong>
+            <div class="muted small">@{{ s.student.username }}</div>
+          </td>
+          <td>
+            {{ s.assignment.title }}
+            {% if s.is_late %}<span class="status status-off">Late</span>{% endif %}
+          </td>
+          <td>{{ s.assignment.course.code }}</td>
+          <td class="muted small">{{ s.submitted_at|date:"M j, g:i A" }}</td>
+          <td>
+            {% if s.grade %}
+              {{ s.grade.points_earned|floatformat:"-2" }} pts
+              <span class="muted small">({{ s.grade.percentage|floatformat:0 }}%)</span>
+            {% else %}
+              <span class="muted">Not graded</span>
+            {% endif %}
+          </td>
+          <td class="actions-cell">
+            <a class="btn-outline btn-sm" href="{% url 'assignments:grade_submission' s.pk %}">Grade</a>
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="6" class="empty-row">Nothing in this queue{% if filters.q %} — <a href="?status={{ status }}">clear search</a>{% endif %}.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
