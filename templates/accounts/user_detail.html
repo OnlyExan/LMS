@@ -102,7 +102,7 @@
             <td><strong>{{ s.assignment.title }}</strong>{% if s.is_late %} <span class="status status-off">Late</span>{% endif %}</td>
             <td>{{ s.assignment.course.code }}</td>
             <td class="muted small">{{ s.submitted_at|date:"M j, g:i A" }}</td>
-            <td>{% if s.grade %}{{ s.grade.points_earned|floatformat:"-2" }} / {{ s.assignment.points_possible|floatformat:"-2" }} <span class="muted small">({{ s.grade.percentage|floatformat:0 }}%)</span>{% else %}<span class="muted">Not graded</span>{% endif %}</td>
+            <td>{% if s.grade %}{{ s.grade.points_earned|floatformat:"-2" }} pts <span class="muted small">({{ s.grade.percentage|floatformat:0 }}%)</span>{% else %}<span class="muted">Not graded</span>{% endif %}</td>
           </tr>
         {% empty %}
           <tr><td colspan="4" class="empty-row">No submissions yet.</td></tr>
