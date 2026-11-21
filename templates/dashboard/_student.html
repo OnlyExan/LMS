@@ -97,7 +97,7 @@
           </a>
           <span class="muted">graded {{ g.graded_at|timesince }} ago</span>
           <span class="grade-pill {% if g.percentage >= 90 %}g-a{% elif g.percentage >= 70 %}g-b{% else %}g-c{% endif %}">
-            {{ g.points_earned|floatformat:"-2" }}/{{ g.submission.assignment.points_possible|floatformat:"-2" }} · {{ g.percentage|floatformat:0 }}%
+            {{ g.percentage|floatformat:0 }}%
           </span>
         </li>
       {% endfor %}
