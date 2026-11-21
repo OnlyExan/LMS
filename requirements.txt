@@ -7,3 +7,4 @@ tzdata==2026.3
 django-storages[s3]>=1.14
 boto3>=1.35
 Pillow>=11.0
+django-axes==9.0.0
