@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Courses{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dash">
+  <header class="dash-header">
+    <div>
+      <h1>Courses</h1>
+      <p class="muted">
+        {{ courses|length }} course{{ courses|length|pluralize }}
+        {% if filters.mine %} · my courses{% endif %}
+        {% if filters.term %} · {{ filters.term }}{% endif %}
+        {% if filters.q %} · matching “{{ filters.q }}”{% endif %}
+      </p>
+    </div>
+    {% if user.role == "instructor" or user.role == "admin" %}
+      <a class="btn" href="{% url 'courses:course_create' %}">+ New course</a>
+    {% endif %}
+  </header>
+
+  {# filters stay in the URL so you can bookmark them #}
+  <div class="toolbar">
+    <div class="chips">
+      <a class="chip{% if not filters.mine %} active{% endif %}"
+         href="{% url 'courses:course_list' %}?{% if filters.term %}term={{ filters.term|urlencode }}&{% endif %}{% if filters.code %}code={{ filters.code|urlencode }}&{% endif %}{% if filters.q %}q={{ filters.q|urlencode }}{% endif %}">All</a>
+      <a class="chip{% if filters.mine %} active{% endif %}"
+         href="?mine=1{% if filters.term %}&term={{ filters.term|urlencode }}{% endif %}{% if filters.code %}&code={{ filters.code|urlencode }}{% endif %}{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}">My courses</a>
+    </div>
+    <form method="get" class="search">
+      {% if filters.mine %}<input type="hidden" name="mine" value="1">{% endif %}
+      <input type="search" name="q" value="{{ filters.q }}" placeholder="Search title, code, description…">
+      <input type="text" name="code" value="{{ filters.code }}" placeholder="Code">
+      <select name="term" class="role-select">
+        <option value="">Any term</option>
+        {% for t in terms %}
+          <option value="{{ t }}" {% if filters.term == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+      <button class="btn-outline">Search</button>
+    </form>
+  </div>
+
+  <div class="course-grid">
+    {% for c in courses %}
+      <article class="course-card">
+        <a class="course-head" href="{% url 'courses:course_detail' c.pk %}">
+          <span class="course-code">{{ c.code }}</span>
+          <span class="course-title">{{ c.title }}</span>
+          <span class="muted">{{ c.term }} · {{ c.instructor.get_full_name|default:c.instructor.username }}</span>
+        </a>
+        <div class="course-meta">
+          <span>{{ c.student_count }} student{{ c.student_count|pluralize }}</span>
+          {% if c.pk in enrolled_ids %}
+            <span class="status status-on">Enrolled</span>
+          {% endif %}
+        </div>
+      </article>
+    {% empty %}
+      <div class="empty-card">
+        {% if filters.mine or filters.term or filters.code or filters.q %}
+          <p>No courses match these filters.</p>
+          <a class="btn" href="{% url 'courses:course_list' %}">Clear filters</a>
+        {% elif user.role == "student" %}
+          <p>No courses to show yet.</p>
+        {% else %}
+          <p>No courses yet.</p>
+          <a class="btn" href="{% url 'courses:course_create' %}">Create a course</a>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
