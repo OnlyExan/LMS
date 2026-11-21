@@ -34,6 +34,8 @@ def audit(request, action, target=None, label="", details=""):
         action=action, target_user=target if isinstance(target, User) else None,
         target_label=label or (target.username if isinstance(target, User) else ""), details=details[:255])
 
+# backend for login() after sign-up (axes is also in AUTHENTICATION_BACKENDS)
+LOGIN_BACKEND = "accounts.auth_backends.UsernameOrEmailBackend"
 
 # ---------- public auth ----------
 
@@ -42,7 +44,7 @@ def register(request):
     form = RegisterForm(request.POST or None, initial={"join_code": request.GET.get("code", "")})
     if request.method == "POST" and form.is_valid():
         user = form.save()
-        login(request, user)
+        login(request, user, backend=LOGIN_BACKEND)
         return redirect("dashboard")
     return render(request, "accounts/register.html", {"form": form})
 
@@ -51,7 +53,7 @@ def create_school(request):
     form = SchoolCreateForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         user = form.save()
-        login(request, user)
+        login(request, user, backend=LOGIN_BACKEND)
         messages.success(request, f"School created. Join code: {user.school.join_code}")
         return redirect("dashboard")
     return render(request, "accounts/create_school.html", {"form": form})
@@ -64,7 +66,7 @@ def accept_invite(request, token):
     form = InviteAcceptForm(request.POST or None, invite=invite)
     if request.method == "POST" and form.is_valid():
         user = form.save()
-        login(request, user)
+        login(request, user, backend=LOGIN_BACKEND)
         return redirect("dashboard")
     return render(request, "accounts/accept_invite.html", {"form": form, "invite": invite})
 
