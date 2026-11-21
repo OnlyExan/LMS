@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Grade {{ submission.student.username }}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+
+{% block content %}
+<div class="admin-page narrow">
+  <a href="{% url 'assignments:submission_list' %}" class="back-link">‹ Back to grading queue</a>
+
+  <div class="admin-header">
+    <div>
+      <h1>Grade submission</h1>
+      <p class="muted">
+        {{ submission.student.get_full_name|default:submission.student.username }}
+        · {{ submission.assignment.title }} ({{ submission.assignment.course.code }})
+      </p>
+    </div>
+  </div>
+
+  <section class="form-card">
+    <h2 class="card-title">Submitted work</h2>
+  {% if submission.response_text %}
+    <div>
+      <p class="muted small">Response</p>
+      <p>{{ submission.response_text|linebreaksbr }}</p>
+    </div>
+  {% endif %}
+  {% if submission.file_upload %}
+    <p><a class="btn-outline btn-sm" href="{{ submission.file_upload.url }}" target="_blank" rel="noopener">Download file</a></p>
+  {% endif %}
+  {% if not submission.response_text and not submission.file_upload %}
+    <p class="muted">No text or file on this submission.</p>
+  {% endif %}
+  <p class="muted small">Submitted {{ submission.submitted_at|date:"M j, g:i A" }}{% if submission.is_late %} · <span class="status status-off">Late</span>{% endif %}</p>
+  </section>
+
+  {% if versions %}
+  <h2 class="section-title">Version history</h2>
+  <ul class="activity-list">
+    {% for v in versions %}
+      <li class="activity-item">
+        <strong>v{{ v.number }}</strong>
+        <span class="muted small">{{ v.submitted_at|date:"M j, g:i A" }}</span>
+        {% if v.is_late %}<span class="status status-off">Late</span>{% endif %}
+        {% if v.response_text %}<p>{{ v.response_text|linebreaksbr }}</p>{% endif %}
+        {% if v.file_upload %}<a href="{{ v.file_upload.url }}">File</a>{% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {% for e in form.non_field_errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+
+    <label class="field">
+      <span>Points earned (out of {{ submission.assignment.points_possible|floatformat:"-2" }})</span>
+      <input type="number" name="points_earned" step="0.01" min="0" max="{{ submission.assignment.points_possible }}"
+             value="{{ form.points_earned.value|default:'' }}" required>
+      {% for e in form.points_earned.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Feedback</span>
+      <textarea name="feedback">{{ form.feedback.value|default:'' }}</textarea>
+      {% for e in form.feedback.errors %}<span class="field-error">{{ e }}</span>{% endfor %}
+    </label>
+
+    <div class="form-foot">
+      <span class="muted small">Saves and returns to the grading queue.</span>
+      <button type="submit" class="btn-primary">Save grade</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

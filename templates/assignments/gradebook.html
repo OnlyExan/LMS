@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ course.code }} gradebook{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dash">
+  <a href="{% url 'courses:course_detail' course.pk %}" class="back-link">‹ Back to {{ course.code }}</a>
+
+  <header class="dash-header">
+    <div>
+      <h1>Gradebook</h1>
+      <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible</p>
+    </div>
+  </header>
+
+  <div class="table-card">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          {% for a in assignments %}
+            <th title="{{ a.title }}">{{ a.title|truncatechars:12 }}</th>
+          {% endfor %}
+          <th>Earned</th>
+          <th>%</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for row in rows %}
+        <tr>
+          <td><strong>{{ row.student.get_full_name|default:row.student.username }}</strong></td>
+          {% for cell in row.cells %}
+            <td>
+              {% if cell.grade %}
+                {{ cell.grade.percentage|floatformat:0 }}%
+              {% elif cell.submission %}
+                <span class="muted">Ungraded</span>
+                {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
+              {% else %}
+                {# no submission yet #}
+                <span class="status status-off">Late</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td><strong>{{ row.earned|floatformat:"-2" }}</strong></td>
+          <td>
+            {% if row.percent is not None %}
+              {{ row.percent|floatformat:1 }}%
+            {% else %}—{% endif %}
+          </td>
+        </tr>
+      {% empty %}
+        <tr><td colspan="100" class="empty-row">No enrolled students.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
