@@ -1,0 +1,35 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS | Login Locked</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+
+<body>
+  <main class="login-container">
+    <div class="login-card">
+
+      <div class="logo">
+        <span class="logo-text">LMS</span>
+      </div>
+
+      <p class="error">
+        Too many failed attempts, try again later.
+      </p>
+
+      <p>
+        Please wait 1 hour before trying again.
+      </p>
+
+      <a href="{% url 'accounts:login' %}">
+        Return to Login
+      </a>
+
+    </div>
+  </main>
+</body>
+</html>

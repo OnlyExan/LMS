@@ -51,11 +51,13 @@ INSTALLED_APPS = [
     'accounts',
     'courses',
     'assignments',
+    'axes',
 ]
 
 AUTH_USER_MODEL = "accounts.User"
 
 AUTHENTICATION_BACKENDS = [
+    "axes.backends.AxesStandaloneBackend",
     "accounts.auth_backends.UsernameOrEmailBackend",
 ]
 
@@ -68,6 +70,7 @@ MIDDLEWARE = [
     'accounts.middleware.ActingSchoolMiddleware',  # after auth
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'axes.middleware.AxesMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -212,3 +215,19 @@ LOGGING = {
     "handlers": {"console": {"class": "logging.StreamHandler"}},
     "loggers": {"django": {"handlers": ["console"], "level": "ERROR"}},
 }
+
+# Django Axes - Login Security
+AXES_FAILURE_LIMIT = 5
+
+# Lock users out for 1 hour
+AXES_COOLOFF_TIME = 1
+
+# Track failed attempts by username and IP address
+AXES_LOCKOUT_PARAMETERS = [
+    ['username', 'ip_address'],
+]
+
+# Reset failed attempts after a successful login
+AXES_RESET_ON_SUCCESS = True
+
+AXES_LOCKOUT_TEMPLATE = 'accounts/locked_out.html'
