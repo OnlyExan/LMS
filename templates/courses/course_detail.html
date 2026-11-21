@@ -43,6 +43,10 @@
       <a class="btn btn-secondary" href="{% url 'assignments:assignment_create' course.pk %}">+ Assignment</a>
       <a class="btn btn-secondary" href="{% url 'courses:roster' course.pk %}">Roster</a>
       <a class="btn btn-secondary" href="{% url 'assignments:gradebook' course.pk %}">Gradebook</a>
+      <form method="post" action="{% url 'courses:course_delete' course.pk %}" class="inline-form"
+            onsubmit="return confirm('Delete {{ course.code }}? This removes all its assignments, submissions and grades.');">
+        {% csrf_token %}<button type="submit" class="btn-outline btn-danger-outline">Delete course</button>
+      </form>
     {% endif %}
   </div>
 
