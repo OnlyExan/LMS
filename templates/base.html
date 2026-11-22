@@ -55,6 +55,18 @@
       <svg viewBox="0 0 24 24"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3z"/><path d="M5 17a3 3 0 0 1 3-3h11"/><path d="M9 8h6"/></svg>
       <span>Courses</span>
     </a>
+    {% if user.role == "instructor" or user.role == "admin" %}
+    <a href="{% url 'assignments:submission_list' %}" class="sidenav-item{% if rm.url_name == 'submission_list' or rm.url_name == 'grade_submission' %} active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+      <span>Grading</span>
+      {% if nav_ungraded %}<b class="nav-badge" title="{{ nav_ungraded }} ungraded">{{ nav_ungraded }}</b>{% endif %}
+    </a>
+    {% elif user.role == "student" %}
+    <a href="{% url 'assignments:my_grades' %}" class="sidenav-item{% if rm.url_name == 'my_grades' %} active{% endif %}">
+      <svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
+      <span>Grades</span>
+    </a>
+    {% endif %}
     {% if user.role == "admin" %}
     <a href="{% url 'accounts:school_settings' %}" class="sidenav-item{% if '/accounts/admin/' in request.path %} active{% endif %}">
       <svg viewBox="0 0 24 24"><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z"/><path d="M9 12l2 2 4-4"/></svg>
