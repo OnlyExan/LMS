@@ -167,12 +167,121 @@ class BulkGradingTests(TestCase):
         self.assertEqual(self.post(data, self.admin).status_code, 302)  # school admin can
         self.assertEqual(Grade.objects.get(submission=self.sub_new).graded_by, self.admin)
 
-    def test_page_has_inputs_only_for_submitted_work(self):
+    def test_page_has_inputs_for_submitted_and_missing_work(self):
         self.client.force_login(self.inst)
         html = self.client.get(self.url()).content.decode()
         self.assertIn(f'name="g-{self.sub_new.pk}"', html)
         self.assertIn(f'name="g-{self.sub_graded.pk}" value="40"', html)
-        self.assertEqual(html.count('class="gb-input"'), 2)  # stu2's missing HW2 isn't editable
+        # 2 submitted cells + HW2 missing for both students (past due, never submitted)
+        self.assertEqual(html.count('class="gb-input"'), 4)
+        self.assertIn(f'name="m-{self.stu2.pk}-{self.hw2.pk}"', html)
         self.assertIn("Missing", html)
         self.assertIn('id="gbSave"', html)
         self.assertIn("csrfmiddlewaretoken", html)
+
+
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class MissingWorkGradingTests(TestCase):
+    """Typing a score (usually 0) into a Missing cell grades work that was never turned in."""
+
+    @classmethod
+    def setUpTestData(cls):
+        now = timezone.now()
+        s = School.objects.create(name="Miss U")
+        cls.inst = User.objects.create_user("minst", password=PW, school=s, role=User.INSTRUCTOR)
+        cls.stu = User.objects.create_user("mstu", password=PW, school=s, role=User.STUDENT)
+        cls.dropped = User.objects.create_user("mdrop", password=PW, school=s, role=User.STUDENT)
+        cls.course = Course.objects.create(school=s, code="MS1", title="MS", instructor=cls.inst, term="Fall")
+        Enrollment.objects.create(student=cls.stu, course=cls.course)
+        Enrollment.objects.create(student=cls.dropped, course=cls.course, status=Enrollment.DROPPED)
+        cls.past = Assignment.objects.create(course=cls.course, title="Past", points_possible=20,
+                                             due_date=now - timedelta(days=2))
+        cls.future = Assignment.objects.create(course=cls.course, title="Future", points_possible=20,
+                                               due_date=now + timedelta(days=2))
+
+    def setUp(self):
+        self.client.force_login(self.inst)
+        self.url = reverse("assignments:gradebook", args=[self.course.pk])
+
+    def key(self, student, a):
+        return f"m-{student.pk}-{a.pk}"
+
+    def test_zero_on_missing_creates_graded_placeholder(self):
+        r = self.client.post(self.url, {self.key(self.stu, self.past): "0"})
+        self.assertRedirects(r, self.url)
+        sub = Submission.objects.get(student=self.stu, assignment=self.past)
+        self.assertTrue(sub.is_empty)
+        self.assertEqual(sub.grade.points_earned, 0)
+        self.assertEqual(sub.grade.graded_by, self.inst)
+        self.assertEqual(sub.versions.count(), 0)  # no fake version history
+
+    def test_graded_missing_counts_and_shows_missing_badge(self):
+        self.client.post(self.url, {self.key(self.stu, self.past): "0"})
+        r = self.client.get(self.url)
+        row = r.context["rows"][0]
+        self.assertEqual((row["earned"], row["graded_possible"]), (0, 20))
+        self.assertEqual(float(row["percent"]), 0.0)
+        cell = row["cells"][0]
+        self.assertIsNotNone(cell["grade"])
+        html = r.content.decode()
+        sub = Submission.objects.get(student=self.stu, assignment=self.past)
+        after = html.split(f'name="g-{sub.pk}"', 1)[1].split("</td>", 1)[0]
+        self.assertIn("Missing", after)
+        self.assertNotIn(">Late<", after)
+
+    def test_student_dashboard_no_longer_lists_it_as_missing(self):
+        self.client.force_login(self.stu)
+        self.assertEqual(len(self.client.get(reverse("dashboard")).context["overdue"]), 1)
+        self.client.force_login(self.inst)
+        self.client.post(self.url, {self.key(self.stu, self.past): "0"})
+        self.client.force_login(self.stu)
+        self.assertEqual(len(self.client.get(reverse("dashboard")).context["overdue"]), 0)
+
+    def test_blank_missing_cell_stays_missing(self):
+        r = self.client.post(self.url, {self.key(self.stu, self.past): ""})
+        self.assertRedirects(r, self.url)
+        self.assertFalse(Submission.objects.exists())
+
+    def test_invalid_score_saves_nothing(self):
+        r = self.client.post(self.url, {self.key(self.stu, self.past): "25"})  # max 20
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(Submission.objects.exists())
+        cell = r.context["rows"][0]["cells"][0]
+        self.assertEqual((cell["value"], cell["error"]), ("25", "Must be between 0 and 20."))
+
+    def test_not_due_dropped_and_foreign_cells_ignored(self):
+        self.client.post(self.url, {
+            self.key(self.stu, self.future): "0",      # not due yet
+            self.key(self.dropped, self.past): "0",    # not actively enrolled
+            f"m-{self.stu.pk}-999999": "0",            # not an assignment in this course
+            "m-abc-1": "0",
+        })
+        self.assertFalse(Submission.objects.exists())
+
+    def test_only_past_due_cells_have_inputs(self):
+        html = self.client.get(self.url).content.decode()
+        self.assertIn(f'name="{self.key(self.stu, self.past)}"', html)
+        self.assertNotIn(f'name="{self.key(self.stu, self.future)}"', html)
+
+    def test_user_detail_doesnt_count_placeholder_as_submitted(self):
+        self.client.post(self.url, {self.key(self.stu, self.past): "0"})
+        admin = User.objects.create_user("madmin", password=PW, school=self.course.school, role=User.ADMIN)
+        self.client.force_login(admin)
+        stats = self.client.get(reverse("accounts:user_detail", args=[self.stu.pk])).context["stats"]
+        self.assertEqual((stats["submitted"], stats["late"], stats["graded"]), (0, 0, 1))
+
+
+@override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
+class CourseDueDateColorTests(TestCase):
+    def test_past_red_future_black(self):
+        now = timezone.now()
+        s = School.objects.create(name="Due U")
+        inst = User.objects.create_user("dinst", password=PW, school=s, role=User.INSTRUCTOR)
+        c = Course.objects.create(school=s, code="DU1", title="DU", instructor=inst, term="Fall")
+        Assignment.objects.create(course=c, title="Old", due_date=now - timedelta(days=1))
+        Assignment.objects.create(course=c, title="New", due_date=now + timedelta(days=1))
+        self.client.force_login(inst)
+        html = self.client.get(reverse("courses:course_detail", args=[c.pk])).content.decode()
+        self.assertEqual(html.count("due-when due-past"), 1)
+        self.assertEqual(html.count("due-when due-future"), 1)
+        self.assertIn('title="Past due"', html)

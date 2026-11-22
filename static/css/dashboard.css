@@ -65,3 +65,5 @@
 /* polish pass: breathing room under page headers and before action rows */
 .dash-header + .toolbar, .dash-header + .table-card, .dash-header + .course-grid { margin-top: 1.25rem; }
 .form-card + .actions { margin-top: 1rem; }
+.due-when.due-future { color: #1f2933; }  /* upcoming */
+.due-when.due-past { color: #dc2626; }    /* past due */

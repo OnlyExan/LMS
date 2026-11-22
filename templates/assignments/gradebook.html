@@ -26,7 +26,7 @@
       {% endif %}
     </header>
     {% if rows %}
-    <p class="muted small gb-hint">Type points in any submitted cell, then <strong>Save grades</strong>. Enter / ↓ moves down, ↑ moves up, Esc undoes a cell. Missing and not-yet-due work can't be graded here.</p>
+    <p class="muted small gb-hint">Type points in any submitted cell, then <strong>Save grades</strong>. Enter / ↓ moves down, ↑ moves up, Esc undoes a cell. To grade work that was never turned in, type a score (usually 0) in a <strong>Missing</strong> cell. Work that isn't due yet can't be graded.</p>
     {% endif %}
 
     <div class="table-card">
@@ -54,13 +54,23 @@
                            data-orig="{{ cell.orig }}"
                            data-possible="{{ cell.assignment.points_possible }}" data-col="{{ forloop.counter0 }}"
                            placeholder="–" aria-label="{{ row.student.get_full_name|default:row.student.username }}, {{ cell.assignment.title }}">
-                    {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
+                    {% if cell.submission.is_empty %}<span class="status status-off" title="Never turned in; graded from the gradebook">Missing</span>
+                    {% elif cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
                     <a href="{% url 'assignments:grade_submission' cell.submission.pk %}" class="gb-open" title="Open submission (feedback, files, versions)">↗</a>
                   </span>
                   {% if cell.error %}<span class="gb-err-msg">{{ cell.error }}</span>{% endif %}
                 </td>
               {% elif cell.missing %}
-                <td><span class="status status-off">Missing</span></td>
+                <td class="gb-edit gb-missing{% if cell.error %} gb-err{% endif %}"{% if cell.error %} title="{{ cell.error }}"{% endif %}>
+                  <span class="gb-cell">
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gb-input"
+                           name="m-{{ row.student.pk }}-{{ cell.assignment.pk }}" value="{{ cell.value }}" data-orig=""
+                           data-possible="{{ cell.assignment.points_possible }}" data-col="{{ forloop.counter0 }}"
+                           placeholder="–" aria-label="{{ row.student.get_full_name|default:row.student.username }}, {{ cell.assignment.title }} (missing)">
+                    <span class="status status-off">Missing</span>
+                  </span>
+                  {% if cell.error %}<span class="gb-err-msg">{{ cell.error }}</span>{% endif %}
+                </td>
               {% else %}
                 <td><span class="muted" title="Not due yet">—</span></td>
               {% endif %}

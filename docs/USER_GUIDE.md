@@ -112,7 +112,8 @@ You can grade straight from the gradebook, like a spreadsheet:
 2. Use **Enter** or **↓** to move down a column, **↑** to move up, and **Esc** to undo a cell. **Undo changes** resets everything you haven't saved.
 3. Click **Save grades** to save every change at once. If any cell is invalid (over the points possible, negative, not a number, more than 2 decimals), it's outlined in red with the reason and **nothing** is saved until you fix it.
 
-- **Missing** (past due, never submitted) and **—** (not due yet) cells can't be graded, because there's no submission.
+- **Missing** cells (past due, never turned in) can be graded too: type a score, usually **0**, and save. The cell keeps a **Missing** badge so it's clear nothing was turned in, the score counts toward the student's grade, and the student can no longer submit that assignment.
+- **—** cells (not due yet) can't be graded.
 - The **↗** next to a score opens the submission, where you can read the work, download files, see earlier versions and add feedback.
 - With many assignments the table scrolls sideways; the student names and the Earned / % columns stay in place.
 - If you try to leave with unsaved changes, the browser asks you to confirm.

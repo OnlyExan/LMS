@@ -38,7 +38,7 @@ All demo users share the password `lmsdemo1`.
 These run against whatever database `.env` points to: Supabase if `POSTGRES_*` is set, local SQLite if blank. Check before wiping.
 
 ## Tests
-`python manage.py test` runs the whole suite (171 tests). It uses stub templates, so it doesn't need the frontend, and always runs on a throwaway SQLite database. See `docs/TESTING.md` for what's covered.
+`python manage.py test` runs the whole suite (180 tests). It uses stub templates, so it doesn't need the frontend, and always runs on a throwaway SQLite database. See `docs/TESTING.md` for what's covered.
 
 ## Docs
 - `docs/BACKEND.md` — every URL, template and context variable, plus how the backend works

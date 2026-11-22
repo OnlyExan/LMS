@@ -62,7 +62,7 @@
               <strong>{{ a.title }}</strong>
               <span class="muted">{{ a.points_possible|floatformat:"-2" }} pts</span>
             </a>
-            <span class="due-when">{{ a.due_date|date:"D M j, g:i A" }}</span>
+            <span class="due-when {% if a.due_date < now %}due-past" title="Past due{% else %}due-future{% endif %}">{{ a.due_date|date:"D M j, g:i A" }}</span>
           </li>
         {% endfor %}
       </ul>
