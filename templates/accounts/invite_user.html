@@ -4,16 +4,18 @@
 {% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
 
 {% block content %}
-<div class="admin-page narrow">
+<div class="admin-page">
   <div class="admin-header">
     <div>
-      <h1>Invite Users</h1>
-      <p class="muted">Send sign-up links to students, instructors or admins. Students can also join on their own with the code <code>{{ request.user.school.join_code }}</code>.</p>
+      <h1>Admin</h1>
+      <p class="muted">Invite users</p>
     </div>
     <a class="btn-outline" href="{% url 'accounts:invite_list' %}">View pending invites</a>
   </div>
 
   {% include "accounts/_admin_tabs.html" %}
+  <div class="invite-body">
+  <p class="muted invite-intro">Send sign-up links to students, instructors or admins. Students can also join on their own with the code <code>{{ request.user.school.join_code }}</code>.</p>
 
   {# tabs: ?mode=bulk opens the bulk tab; a failed POST reopens whichever tab was used #}
   {% with active=request.GET.mode|default:mode %}
@@ -79,6 +81,7 @@
     </form>
   </div>
   {% endwith %}
+  </div>
 </div>
 
 <script>

@@ -213,3 +213,10 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .gb-actions { display: flex; align-items: center; gap: 0.6rem; }
 .gb-actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
 .gb-hint { margin: 0.6rem 0 1rem !important; }
+
+/* polish pass */
+.field .muted.small { font-weight: 400; }  /* help text under a field label isn't bold */
+.search select { height: 38px; }  /* dropdowns in search bars match the inputs */
+.activity-item .status { align-self: flex-start; }  /* Late badge stays a pill in version history */
+.invite-body { max-width: 720px; }
+.invite-intro { margin: 0 0 1rem !important; }

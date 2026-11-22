@@ -113,6 +113,8 @@ class Command(BaseCommand):
                             # backdate: on time for most, late for every 3rd
                             late = (s_idx + a_idx) % 3 == 0
                             when = asg.due_date + timedelta(hours=6 if late else -6)
+                            if when > now:  # still due in the future: turned in early, can't be late
+                                when, late = now - timedelta(hours=2 + s_idx), False
                             Submission.objects.filter(pk=sub.pk).update(
                                 submitted_at=when, is_late=late)
                             sub.versions.update(submitted_at=when, is_late=late)
