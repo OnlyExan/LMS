@@ -3,6 +3,8 @@ from django.db import models
 from django.utils import timezone
 from courses.models import Course
 
+from .filetypes import default_file_types, extensions_for
+
 
 class Assignment(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="assignments")
@@ -11,12 +13,27 @@ class Assignment(models.Model):
     due_date = models.DateTimeField()
     points_possible = models.DecimalField(max_digits=6, decimal_places=2, default=100)
     created_at = models.DateTimeField(auto_now_add=True)
+    # LSM-100: keys from filetypes.FILE_TYPES; empty list = text response only
+    allowed_file_types = models.JSONField(default=default_file_types, blank=True)
 
     class Meta:
         ordering = ["due_date"]
 
     def __str__(self):
         return f"{self.course.code}: {self.title}"
+
+    @property
+    def allowed_extensions(self):
+        return extensions_for(self.allowed_file_types)
+
+    @property
+    def accepts_files(self):
+        return bool(self.allowed_extensions)
+
+    @property
+    def accept_attr(self):
+        """For <input type="file" accept="...">."""
+        return ",".join(self.allowed_extensions)
 
 
 class Submission(models.Model):

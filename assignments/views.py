@@ -146,7 +146,8 @@ def submit(request, pk):
     if existing and hasattr(existing, "grade"):
         messages.error(request, "This submission is already graded.")
         return redirect("assignments:assignment_detail", pk=pk)
-    form = SubmissionForm(request.POST or None, request.FILES or None, instance=existing)
+    form = SubmissionForm(request.POST or None, request.FILES or None, instance=existing,
+                          assignment=assignment)
     if request.method == "POST" and form.is_valid():
         sub = form.save(commit=False)
         sub.assignment, sub.student = assignment, request.user
