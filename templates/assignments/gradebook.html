@@ -18,23 +18,23 @@
   </header>
 
   <div class="table-card">
-    <table class="data-table">
+    <table class="data-table gradebook">
       <thead>
         <tr>
           <th>Student</th>
           {% for a in assignments %}
-            <th title="{{ a.title }}">{{ a.title|truncatechars:12 }}</th>
+            <th title="{{ a.title }}">{{ a.title }}<span class="gb-pts">{{ a.points_possible|floatformat:"-2" }} pts</span></th>
           {% endfor %}
-          <th title="Points earned / points possible on graded work">Earned</th>
-          <th title="Grade so far: graded work only">%</th>
+          <th class="gb-num" title="Points earned / points possible on graded work">Earned</th>
+          <th class="gb-num" title="Grade so far: graded work only">%</th>
         </tr>
       </thead>
       <tbody>
       {% for row in rows %}
         <tr>
-          <td><strong>{{ row.student.get_full_name|default:row.student.username }}</strong></td>
+          <td class="gb-student"><strong>{{ row.student.get_full_name|default:row.student.username }}</strong></td>
           {% for cell in row.cells %}
-            <td>
+            <td><span class="gb-cell">
               {% if cell.grade %}
                 {{ cell.grade.percentage|floatformat:0 }}%
                 {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
@@ -46,10 +46,10 @@
               {% else %}
                 <span class="muted" title="Not due yet">—</span>
               {% endif %}
-            </td>
+            </span></td>
           {% endfor %}
-          <td><strong>{{ row.earned|floatformat:"-2" }}</strong><span class="muted"> / {{ row.graded_possible|floatformat:"-2" }}</span></td>
-          <td>
+          <td class="gb-num"><strong>{{ row.earned|floatformat:"-2" }}</strong><span class="muted"> / {{ row.graded_possible|floatformat:"-2" }}</span></td>
+          <td class="gb-num">
             {% if row.percent is not None %}
               {{ row.percent|floatformat:1 }}%
             {% else %}—{% endif %}

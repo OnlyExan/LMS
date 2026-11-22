@@ -177,3 +177,20 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .actions-cell { text-align: left; }           /* Edit buttons line up on every row */
 .data-table td:first-child + td { min-width: 200px; }
 .data-table tr:has(.you) { background: #f8fafc; } /* your own row, subtly marked */
+
+/* gradebook: compact, one line per cell */
+.gradebook td:first-child + td { min-width: 0; }  /* undo the Manage Users column rule */
+.gradebook th { white-space: normal; vertical-align: bottom; min-width: 5.5rem; max-width: 9rem; line-height: 1.3;
+               text-transform: none; letter-spacing: 0; font-size: 0.8rem; font-weight: 600; color: #374151; }
+.gradebook th.gb-num { min-width: 0; }
+.gradebook th:first-child { min-width: 0; }
+.gb-pts { display: block; margin-top: 0.15rem; font-weight: 500; text-transform: none; letter-spacing: 0; color: #9ca3af; }
+.gradebook td { white-space: nowrap; }
+.gradebook .muted { margin: 0; }  /* .dash .muted adds a top margin */
+.gb-cell { display: inline-flex; align-items: center; gap: 0.4rem; }
+.gb-student { position: sticky; left: 0; background: #fff; z-index: 1; }  /* name stays visible when scrolling sideways */
+.gradebook thead th:first-child { position: sticky; left: 0; z-index: 2; }
+.gradebook tbody tr:hover .gb-student { background: #f8fafc; }
+.gradebook .gb-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.dash-header + .table-card:has(.gradebook) { margin-top: 1.25rem; }
