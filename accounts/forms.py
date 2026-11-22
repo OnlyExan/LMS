@@ -7,11 +7,25 @@ from django.contrib.auth.forms import UserCreationForm
 from .models import TIMEZONE_CHOICES, School, User, AdminInvite
 
 
+def clean_unique_email(form):
+    """Emails are a login name, so no two accounts may share one (any case)."""
+    email = (form.cleaned_data.get("email") or "").strip()
+    if email:
+        taken = User.objects.filter(email__iexact=email)
+        if form.instance.pk:
+            taken = taken.exclude(pk=form.instance.pk)
+        if taken.exists():
+            raise forms.ValidationError("An account with this email already exists.")
+    return email
+
+
 class _BaseUserForm(UserCreationForm):
     # role/school are never form fields — always set server-side
     class Meta:
         model = User
         fields = ("username", "first_name", "last_name", "email")
+
+    clean_email = clean_unique_email
 
 
 class RegisterForm(_BaseUserForm):
@@ -155,10 +169,15 @@ class SchoolSettingsForm(forms.ModelForm):
         fields = ("name", "logo", "brand_color", "allow_self_signup", "invite_expiry_days", "timezone")
         widgets = {"brand_color": forms.TextInput(attrs={"type": "color"})}
 
+    LOGO_FORMATS = {"PNG", "JPEG", "WEBP", "GIF"}  # what the page promises
+
     def clean_logo(self):
         logo = self.cleaned_data.get("logo")
         if logo and hasattr(logo, "size") and logo.size > self.LOGO_MAX_MB * 1024 * 1024:
             raise forms.ValidationError(f"Logo must be under {self.LOGO_MAX_MB} MB.")
+        image = getattr(logo, "image", None)  # set by ImageField for a new upload
+        if image is not None and image.format not in self.LOGO_FORMATS:
+            raise forms.ValidationError("Logo must be a PNG, JPG, WebP or GIF image.")
         return logo
 
     def clean_brand_color(self):
@@ -177,6 +196,9 @@ class ProfileForm(forms.ModelForm):
             for f in ("first_name", "last_name", "email"):
                 del self.fields[f]
 
+    def clean_email(self):
+        return clean_unique_email(self)
+
     @staticmethod
     def can_edit_details(user):
         return user.is_superuser or user.role in (User.INSTRUCTOR, User.ADMIN)
@@ -187,3 +209,6 @@ class AdminUserEditForm(forms.ModelForm):
     class Meta:
         model = User
         fields = ("first_name", "last_name", "email")
+
+    def clean_email(self):
+        return clean_unique_email(self)

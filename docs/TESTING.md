@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 180 tests, all passing (about 30 s).
+**Current result:** 188 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `180 passed, 0 failed, 0 errors, 0 skipped (180 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `188 passed, 0 failed, 0 errors, 0 skipped (188 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -72,6 +72,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_submission_filters.py` | 6 | Grading queue late/on-time + course filters | FR-3.5, FR-4.5 | LSM-92 |
 | `test_gradebook.py` | 22 | Gradebook % and cell labels; bulk grading; scoring missing work; course-page due date colors | FR-3.6, FR-3.7, FR-3.9, Integrity, Tenant | LSM-39, 103 |
 | `test_polish.py` | 4 | Friendly 403/404 pages, no Save button for students' locked profile, seed data never dated in the future | Usability | |
+| `test_security.py` | 8 | Lockout IP can't be spoofed off Vercel, unique emails (case-insensitive), logo must be a real PNG/JPG/WebP/GIF, names JS-escaped in confirm() dialogs | Security | |
 | **Total** | **180** | | | |
 
 ### Security tests

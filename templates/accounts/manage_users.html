@@ -95,7 +95,7 @@
             </form>
             {% endif %}
             <form method="post" action="{% url 'accounts:toggle_active' u.pk %}"
-                  {% if u.is_active %}onsubmit="return confirm('Deactivate {{ u.username }}? They won\'t be able to log in.');"{% endif %}>
+                  {% if u.is_active %}onsubmit="return confirm('Deactivate {{ u.username|escapejs }}? They won\'t be able to log in.');"{% endif %}>
               {% csrf_token %}<input type="hidden" name="next" value="{{ request.get_full_path }}">
               {% if u.is_active %}
                 <button class="btn-outline btn-sm btn-danger-outline">Deactivate</button>
