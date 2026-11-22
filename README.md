@@ -42,4 +42,6 @@ These run against whatever database `.env` points to: Supabase if `POSTGRES_*` i
 
 ## Docs
 - `docs/BACKEND.md` — every URL, template and context variable, plus how the backend works
+- `docs/USER_GUIDE.md` — how students, instructors and admins use the app
+- `docs/DEVELOPER.md` — architecture, design decisions, team workflow and deployment
 - `docs/TESTING.md` — how to run the tests, what each file covers, and known gaps
