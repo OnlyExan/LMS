@@ -38,6 +38,10 @@ body.with-sidebar { padding-left: var(--nav-w); }
 .sidenav-item:hover { background: var(--brand-dark); }
 .sidenav-item.active { background: #fff; color: var(--brand); }
 .sidenav-item.active span { text-decoration: none; }
+/* LSM-97: count badge on a nav item (e.g. ungraded submissions) */
+.sidenav-item { position: relative; }
+.nav-badge { position: absolute; top: 0.35rem; right: 0.6rem; min-width: 1.15rem; height: 1.15rem; padding: 0 0.3rem; border-radius: 999px; background: #ef4444; color: #fff; font-size: 0.7rem; font-weight: 700; line-height: 1.15rem; text-align: center; }
+body.nav-collapsed .nav-badge { right: 0.2rem; }
 .sidenav-collapse { margin-top: auto; padding: 1rem 0; background: none; border: 0; color: #fff; cursor: pointer; }
 
 /* collapsed: icons only */
