@@ -7,59 +7,146 @@
 {% endblock %}
 
 {% block content %}
-<section class="dash">
+<section class="dash dash-wide">
   <a href="{% url 'courses:course_detail' course.pk %}" class="back-link">‹ Back to {{ course.code }}</a>
 
-  <header class="dash-header">
-    <div>
-      <h1>Gradebook</h1>
-      <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only</p>
-    </div>
-  </header>
+  <form method="post" id="gbForm">
+    {% csrf_token %}
+    <header class="dash-header">
+      <div>
+        <h1>Gradebook</h1>
+        <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only</p>
+      </div>
+      {% if rows %}
+      <div class="gb-actions">
+        <span class="muted small" id="gbDirty" hidden><span id="gbDirtyCount">0</span> unsaved</span>
+        <button type="button" class="btn-outline" id="gbUndo" hidden>Undo changes</button>
+        <button type="submit" class="btn-primary" id="gbSave" {% if not has_errors %}disabled{% endif %}>Save grades</button>
+      </div>
+      {% endif %}
+    </header>
+    {% if rows %}
+    <p class="muted small gb-hint">Type points in any submitted cell, then <strong>Save grades</strong>. Enter / ↓ moves down, ↑ moves up, Esc undoes a cell. Missing and not-yet-due work can't be graded here.</p>
+    {% endif %}
 
-  <div class="table-card">
-    <table class="data-table gradebook">
-      <thead>
-        <tr>
-          <th>Student</th>
-          {% for a in assignments %}
-            <th title="{{ a.title }}">{{ a.title }}<span class="gb-pts">{{ a.points_possible|floatformat:"-2" }} pts</span></th>
-          {% endfor %}
-          <th class="gb-num" title="Points earned / points possible on graded work">Earned</th>
-          <th class="gb-num" title="Grade so far: graded work only">%</th>
-        </tr>
-      </thead>
-      <tbody>
-      {% for row in rows %}
-        <tr>
-          <td class="gb-student"><strong>{{ row.student.get_full_name|default:row.student.username }}</strong></td>
-          {% for cell in row.cells %}
-            <td><span class="gb-cell">
-              {% if cell.grade %}
-                {{ cell.grade.percentage|floatformat:0 }}%
-                {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
-              {% elif cell.submission %}
-                <span class="muted">Ungraded</span>
-                {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
+    <div class="table-card">
+      <table class="data-table gradebook">
+        <thead>
+          <tr>
+            <th class="gb-student">Student</th>
+            {% for a in assignments %}
+              <th title="{{ a.title }} · due {{ a.due_date|date:'M j, g:i A' }}">{{ a.title }}<span class="gb-pts">out of {{ a.points_possible|floatformat:"-2" }}</span></th>
+            {% endfor %}
+            <th class="gb-num gb-earned" title="Points earned / points possible on graded work">Earned</th>
+            <th class="gb-num gb-pct" title="Grade so far: graded work only">%</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr data-row="{{ forloop.counter0 }}">
+            <td class="gb-student"><strong>{{ row.student.get_full_name|default:row.student.username }}</strong></td>
+            {% for cell in row.cells %}
+              {% if cell.submission %}
+                <td class="gb-edit{% if cell.error %} gb-err{% endif %}"{% if cell.error %} title="{{ cell.error }}"{% endif %}>
+                  <span class="gb-cell">
+                    <input type="text" inputmode="decimal" autocomplete="off" class="gb-input"
+                           name="g-{{ cell.submission.pk }}" value="{{ cell.value }}"
+                           data-orig="{{ cell.orig }}"
+                           data-possible="{{ cell.assignment.points_possible }}" data-col="{{ forloop.counter0 }}"
+                           placeholder="–" aria-label="{{ row.student.get_full_name|default:row.student.username }}, {{ cell.assignment.title }}">
+                    {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
+                    <a href="{% url 'assignments:grade_submission' cell.submission.pk %}" class="gb-open" title="Open submission (feedback, files, versions)">↗</a>
+                  </span>
+                  {% if cell.error %}<span class="gb-err-msg">{{ cell.error }}</span>{% endif %}
+                </td>
               {% elif cell.missing %}
-                <span class="status status-off">Missing</span>
+                <td><span class="status status-off">Missing</span></td>
               {% else %}
-                <span class="muted" title="Not due yet">—</span>
+                <td><span class="muted" title="Not due yet">—</span></td>
               {% endif %}
-            </span></td>
-          {% endfor %}
-          <td class="gb-num"><strong>{{ row.earned|floatformat:"-2" }}</strong><span class="muted"> / {{ row.graded_possible|floatformat:"-2" }}</span></td>
-          <td class="gb-num">
-            {% if row.percent is not None %}
-              {{ row.percent|floatformat:1 }}%
-            {% else %}—{% endif %}
-          </td>
-        </tr>
-      {% empty %}
-        <tr><td colspan="100" class="empty-row">No enrolled students.</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+            {% endfor %}
+            <td class="gb-num gb-earned" data-earned="{{ row.earned }}" data-possible="{{ row.graded_possible }}">
+              <strong class="gb-earned-val">{{ row.earned|floatformat:"-2" }}</strong><span class="muted"> / <span class="gb-possible-val">{{ row.graded_possible|floatformat:"-2" }}</span></span>
+            </td>
+            <td class="gb-num gb-pct">
+              <span class="gb-pct-val">{% if row.percent is not None %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
+            </td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="100" class="empty-row">No enrolled students.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </form>
 </section>
+
+<script>
+(() => {
+  const form = document.getElementById("gbForm");
+  const inputs = [...document.querySelectorAll(".gb-input")];
+  if (!inputs.length) return;
+  const save = document.getElementById("gbSave"), undo = document.getElementById("gbUndo");
+  const dirtyBox = document.getElementById("gbDirty"), dirtyCount = document.getElementById("gbDirtyCount");
+  let submitting = false;
+
+  const num = v => (v.trim() === "" || isNaN(Number(v))) ? null : Number(v);
+  const isDirty = i => i.value.trim() !== i.dataset.orig;
+
+  // live Earned / % per row: graded (or typed) cells only, same rule as the server
+  function retotal(tr) {
+    let earned = 0, possible = 0;
+    tr.querySelectorAll(".gb-input").forEach(i => {
+      const v = num(i.value);
+      if (v !== null) { earned += v; possible += Number(i.dataset.possible); }
+    });
+    const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, "");
+    tr.querySelector(".gb-earned-val").textContent = fmt(earned);
+    tr.querySelector(".gb-possible-val").textContent = fmt(possible);
+    tr.querySelector(".gb-pct-val").textContent = possible ? (earned / possible * 100).toFixed(1) + "%" : "—";
+  }
+
+  function refresh() {
+    const n = inputs.filter(isDirty).length;
+    inputs.forEach(i => i.closest("td").classList.toggle("gb-dirty", isDirty(i)));
+    dirtyCount.textContent = n;
+    dirtyBox.hidden = undo.hidden = n === 0;
+    save.disabled = n === 0 && !document.querySelector(".gb-err");
+  }
+
+  // move to the same assignment column in the next/previous row
+  function move(input, step) {
+    const tr = input.closest("tr");
+    let row = tr;
+    while ((row = step > 0 ? row.nextElementSibling : row.previousElementSibling)) {
+      const next = row.querySelector(`.gb-input[data-col="${input.dataset.col}"]`);
+      if (next) { next.focus(); next.select(); return; }
+    }
+  }
+
+  inputs.forEach(i => {
+    i.addEventListener("input", () => { retotal(i.closest("tr")); refresh(); });
+    i.addEventListener("focus", () => i.select());
+    i.addEventListener("keydown", e => {
+      if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); move(i, 1); }
+      else if (e.key === "ArrowUp") { e.preventDefault(); move(i, -1); }
+      else if (e.key === "Escape") { i.value = i.dataset.orig; i.dispatchEvent(new Event("input")); }
+    });
+  });
+
+  undo.addEventListener("click", () => {
+    inputs.forEach(i => { i.value = i.dataset.orig; });
+    document.querySelectorAll("tr[data-row]").forEach(retotal);
+    refresh();
+  });
+
+  form.addEventListener("submit", () => { submitting = true; save.disabled = true; save.textContent = "Saving…"; });
+  window.addEventListener("beforeunload", e => {
+    if (!submitting && inputs.some(isDirty)) { e.preventDefault(); e.returnValue = ""; }
+  });
+
+  document.querySelectorAll("tr[data-row]").forEach(retotal);
+  refresh();
+})();
+</script>
 {% endblock %}

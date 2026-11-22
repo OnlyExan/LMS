@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 159 tests, all passing (about 30 s).
+**Current result:** 167 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `159 passed, 0 failed, 0 errors, 0 skipped (159 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `167 passed, 0 failed, 0 errors, 0 skipped (167 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -70,8 +70,8 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_db_security.py` | 2 | Supabase RLS hook runs on Postgres only | Tenant | |
 | `test_nav_badge.py` | 6 | Sidebar ungraded-count badge | FR-4.3, Tenant | LSM-97 |
 | `test_submission_filters.py` | 6 | Grading queue late/on-time + course filters | FR-3.5, FR-4.5 | LSM-92 |
-| `test_gradebook.py` | 5 | Gradebook % and cell labels | FR-3.9 | LSM-39, 103 |
-| **Total** | **159** | | | |
+| `test_gradebook.py` | 13 | Gradebook % and cell labels; bulk grading from the gradebook | FR-3.6, FR-3.7, FR-3.9, Integrity, Tenant | LSM-39, 103 |
+| **Total** | **167** | | | |
 
 ### Security tests
 These are the tests that back the security requirements. If one fails, treat it as a blocker.
@@ -145,7 +145,7 @@ The `post_migrate` hook that turns on Row Level Security runs on Postgres and do
 ### Sidebar badge, grading filters, gradebook
 - **`test_nav_badge.py` (6), LSM-97:** instructors see their own ungraded count, admins the whole school, another school sees 0, students get nothing; the count drops after grading; the real page shows the Grading badge for instructors and the Grades link for students.
 - **`test_submission_filters.py` (6), LSM-92:** late only, on time only, or both; the course dropdown lists only courses you grade; filters are passed back to the page; on the real page the chips and dropdowns keep the selected filters.
-- **`test_gradebook.py` (5):** the % counts graded work only (171 / 200 = 85.5%, not 171 / 550) and matches the student dashboard's current grade; past-due work with no submission shows **Missing**, work not due yet shows "—"; graded late work keeps its Late badge; no graded work shows "—" for the %.
+- **`test_gradebook.py` (13).** `GradebookTests` (5): the % counts graded work only (171 / 200 = 85.5%, not 171 / 550) and matches the student dashboard's current grade; past-due work with no submission shows **Missing**, work not due yet shows "—"; graded late work keeps its Late badge; no graded work shows "—" for the %. `BulkGradingTests` (8): new and changed grades save together and keep existing feedback; unchanged cells aren't rewritten and blanks stay ungraded; one bad cell saves nothing and keeps what was typed; error messages for non-numbers, negatives, over the max and too many decimals; a graded cell can't be blanked; submissions from other courses (or made-up IDs) are ignored; only the course's instructor or a school admin can save; only submitted cells get an input.
 
 ## Not covered yet
 
