@@ -185,7 +185,8 @@ class AssignmentFlowTests(LMSTestCase):
         self.login(a["inst"])
         due = (timezone.now() + timedelta(days=20)).strftime("%Y-%m-%dT%H:%M")
         self.client.post(reverse("assignments:assignment_create", args=[a["course"].pk]),
-                         {"title": "Project", "due_date": due, "points_possible": "50"})
+                         {"title": "Project", "due_date": due, "points_possible": "50",
+                          "file_types": ["pdf", "word"]})  # LSM-100: form always posts the checked types
         self.assertTrue(Assignment.objects.filter(title="Project").exists())
         later = (timezone.now() + timedelta(days=10)).strftime("%Y-%m-%d")
         r = self.client.get(reverse("assignments:assignment_list"), {"due_after": later})
