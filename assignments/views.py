@@ -43,7 +43,7 @@ def _parse_date(value):
 def assignment_list(request):
     user = request.user
     qs = visible_assignments(user)
-    course_id = request.GET.get("course")
+    course_id = request.GET.get("course", "")
     due_after = _parse_date(request.GET.get("due_after"))
     due_before = _parse_date(request.GET.get("due_before"))
     q = request.GET.get("q", "").strip()
@@ -177,18 +177,26 @@ def submission_list(request):
         qs = qs.filter(grade__isnull=True)
     elif status == "graded":
         qs = qs.filter(grade__isnull=False)
-    course_id = request.GET.get("course")
+    course_id = request.GET.get("course", "")
     if course_id and course_id.isdigit():
         qs = qs.filter(assignment__course_id=course_id)
+    late = request.GET.get("late", "")  # "1" late only, "0" on-time only
+    if late in ("0", "1"):
+        qs = qs.filter(is_late=(late == "1"))
     q = request.GET.get("q", "").strip()
     if q:
         qs = qs.filter(Q(student__username__icontains=q) | Q(student__first_name__icontains=q)
                        | Q(student__last_name__icontains=q)
                        | Q(assignment__title__icontains=q))
+    # course dropdown: courses this user grades
+    courses = school_courses(request.user)
+    if request.user.role != User.ADMIN:
+        courses = courses.filter(instructor=request.user)
     return render(request, "assignments/submission_list.html", {
         "submissions": qs.order_by("submitted_at"),
         "status": status,
-        "filters": {"course": course_id, "q": q},
+        "courses": courses.order_by("code"),
+        "filters": {"course": course_id, "q": q, "late": late},
     })
 
 
