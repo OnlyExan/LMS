@@ -12,9 +12,9 @@
 9. `python manage.py runserver`
 
 ## Apps
-- `accounts/` — School, User, AdminInvite, auth
+- `accounts/` — School, User, AdminInvite, AuditLog, auth
 - `courses/` — Course, Enrollment
-- `assignments/` — Assignment, Submission, Grade
+- `assignments/` — Assignment, Submission, SubmissionVersion, Grade
 
 ## Demo data
 All demo users share the password `lmsdemo1`.
@@ -38,7 +38,10 @@ All demo users share the password `lmsdemo1`.
 These run against whatever database `.env` points to: Supabase if `POSTGRES_*` is set, local SQLite if blank. Check before wiping.
 
 ## Tests
-`python manage.py test` — runs with stub templates, so it doesn't need the frontend.
+`python manage.py test` runs the whole suite (142 tests on `main`). It uses stub templates, so it doesn't need the frontend, and always runs on a throwaway SQLite database. See `docs/TESTING.md` for what's covered.
 
 ## Docs
-- `docs/BACKEND.md` — every URL, template, and context variable for the frontend
+- `docs/BACKEND.md` — every URL, template and context variable, plus how the backend works
+- `docs/USER_GUIDE.md` — how students, instructors and admins use the app
+- `docs/DEVELOPER.md` — architecture, design decisions, team workflow and deployment
+- `docs/TESTING.md` — how to run the tests, what each file covers, and known gaps
