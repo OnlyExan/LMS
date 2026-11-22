@@ -4,8 +4,6 @@ Every URL, template and context variable, plus how the backend features work. Us
 
 **Status:** the backend is done for auth, school admin, courses, assignments, grading, dashboards and search. Every page has a template except the four assignment pages (`assignment_list`, `assignment_detail`, `assignment_form`, `submit`, LSM-34/102). Their views work and are tested; see [Pages still to build](#pages-still-to-build).
 
-Items marked **(pending merge)** are in open PRs (LSM-97, LSM-92) and not on `main` yet.
-
 ## Rules for templates
 - Every page `{% extends "base.html" %}`.
 - **POST-only actions** need `<form method="post">` with `{% csrf_token %}`: logout, enroll, drop, revoke invite, change role, toggle active, bulk users, edit user, reset-password link, delete course, delete assignment, exit platform mode.
@@ -26,7 +24,7 @@ Items marked **(pending merge)** are in open PRs (LSM-97, LSM-92) and not on `ma
 |---|---|---|
 | `user.school` | Logged-in user | `.name`, `.logo`, `.brand_color` for the top bar and sidebar |
 | `request.acting_school` | `ActingSchoolMiddleware` | Set while a superuser is viewing a school as its admin. Show the banner and the exit button |
-| `nav_ungraded` | `accounts.context_processors.nav_counts` **(pending merge, LSM-97)** | Ungraded submissions for the sidebar Grading badge. Instructors: own courses. Admins: whole school. Not set for students |
+| `nav_ungraded` | `accounts.context_processors.nav_counts` (LSM-97) | Ungraded submissions for the sidebar Grading badge. Instructors: own courses. Admins: whole school. Not set for students |
 
 Dates and times display in the school's time zone (`School.timezone`); the middleware turns it on for each request.
 
@@ -95,10 +93,10 @@ Dates and times display in the school's time zone (`School.timezone`); the middl
 | `assignments:assignment_delete` | `/assignments/<pk>/delete/` | POST only | |
 | `assignments:assignment_detail` | `/assignments/<pk>/` | `assignments/assignment_detail.html` ⚠️ | `assignment`, `course`, `is_past_due`. **Student:** `submission`, `versions`, `grade`, `can_submit`. **Instructor/admin:** `submissions`, `submission_count`, `ungraded_count`, `enrolled_count` |
 | `assignments:submit` | `/assignments/<pk>/submit/` | `assignments/submit.html` ⚠️ | `form`, `assignment`, `submission` (existing; can resubmit until graded) |
-| `assignments:submission_list` | `/assignments/submissions/` | `assignments/submission_list.html` | `submissions` (`.student .assignment .is_late .grade`), `status`, `filters` (`course q`). GET `?status=ungraded|graded|all&course=&q=`. **(pending merge, LSM-92):** also `courses` for the dropdown, `filters.late`, and GET `late=1` (late only) / `late=0` (on time only) |
+| `assignments:submission_list` | `/assignments/submissions/` | `assignments/submission_list.html` | `submissions` (`.student .assignment .is_late .grade`), `status`, `filters` (`course q late`), `courses` (dropdown: courses you grade). GET `?status=ungraded|graded|all&course=&late=&q=`, where `late=1` is late only and `late=0` on time only (LSM-92) |
 | `assignments:grade_submission` | `/assignments/submissions/<pk>/grade/` | `assignments/grade_form.html` | `form` (points_earned, feedback), `submission`, `grade`, `versions` |
 | `assignments:my_grades` | `/assignments/grades/` | `assignments/my_grades.html` | `grades` (use `grade.percentage`) |
-| `assignments:gradebook` | `/assignments/course/<course_pk>/gradebook/` | `assignments/gradebook.html` | `course`, `assignments`, `total_possible`, `rows` → each `{student, cells:[{assignment, submission, grade}], earned, percent}` |
+| `assignments:gradebook` | `/assignments/course/<course_pk>/gradebook/` | `assignments/gradebook.html` | `course`, `assignments`, `total_possible`, `rows` → each `{student, cells:[{assignment, submission, grade, missing}], earned, graded_possible, percent}`. `percent` = earned / points possible **on graded work only** (same as the dashboard's current grade; `None` if nothing graded). `missing` = past due and never submitted |
 
 ⚠️ = template not built yet.
 
@@ -157,4 +155,4 @@ After every `migrate` on Postgres, `accounts/db_security.py` turns on Row Level 
 These run against whatever database `.env` points to.
 
 ## Tests
-See [`docs/TESTING.md`](TESTING.md). `python manage.py test` runs 142 tests on `main` with stub templates, so missing pages don't fail it.
+See [`docs/TESTING.md`](TESTING.md). `python manage.py test` runs 159 tests with stub templates, so missing pages don't fail it.

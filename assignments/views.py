@@ -236,17 +236,23 @@ def gradebook(request, course_pk):
     by_key = {(s.student_id, s.assignment_id): s for s in subs}
 
     total_possible = sum(a.points_possible for a in assignments)
+    now = timezone.now()
     rows = []
     for e in enrollments:
-        cells, earned = [], 0
+        cells, earned, graded_possible = [], 0, 0
         for a in assignments:
             s = by_key.get((e.student_id, a.id))
             g = getattr(s, "grade", None) if s else None
             if g:
                 earned += g.points_earned
-            cells.append({"assignment": a, "submission": s, "grade": g})
+                graded_possible += a.points_possible
+            cells.append({"assignment": a, "submission": s, "grade": g,
+                          "missing": s is None and a.due_date < now})  # past due, never submitted
+        # % of graded work only, same as the student dashboard's current grade;
+        # ungraded, missing and not-yet-due work don't count yet
         rows.append({"student": e.student, "cells": cells, "earned": earned,
-                     "percent": (earned / total_possible * 100) if total_possible else None})
+                     "graded_possible": graded_possible,
+                     "percent": (earned / graded_possible * 100) if graded_possible else None})
     return render(request, "assignments/gradebook.html", {
         "course": course, "assignments": assignments, "rows": rows,
         "total_possible": total_possible,

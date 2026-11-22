@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 142 tests on `main`, all passing (about 30 s). Two open PRs add 12 more (154 total); see [Pending merge](#pending-merge).
+**Current result:** 159 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `142 passed, 0 failed, 0 errors, 0 skipped (142 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `159 passed, 0 failed, 0 errors, 0 skipped (159 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -68,7 +68,10 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_instructor_dashboard.py` | 3 | Instructor dashboard data + render | FR-4.1, FR-4.3 | LSM-44, 74, 87 |
 | `test_invite_list.py` | 2 | Pending/expired invites, re-invite | FR-1.4, FR-1.8 | LSM-57, 82, 95 |
 | `test_db_security.py` | 2 | Supabase RLS hook runs on Postgres only | Tenant | |
-| **Total** | **142** | | | |
+| `test_nav_badge.py` | 6 | Sidebar ungraded-count badge | FR-4.3, Tenant | LSM-97 |
+| `test_submission_filters.py` | 6 | Grading queue late/on-time + course filters | FR-3.5, FR-4.5 | LSM-92 |
+| `test_gradebook.py` | 5 | Gradebook % and cell labels | FR-3.9 | LSM-39, 103 |
+| **Total** | **159** | | | |
 
 ### Security tests
 These are the tests that back the security requirements. If one fails, treat it as a blocker.
@@ -139,14 +142,10 @@ After 5 failed logins the account is locked (HTTP 429, `locked_out.html`) even w
 ### `test_db_security.py` (2)
 The `post_migrate` hook that turns on Row Level Security runs on Postgres and does nothing on SQLite. The SQL itself was also checked once by hand against a real Postgres 16 database: after `migrate`, all 23 tables had RLS on and Django could still read them.
 
-## Pending merge
-
-| PR | File | Tests | Checks | Requirements |
-|---|---|---|---|---|
-| LSM-97 | `test_nav_badge.py` | 6 | Sidebar ungraded count: own courses for instructors, whole school for admins, 0 for another school, nothing for students; count drops after grading; real page shows the Grading badge for instructors and the Grades link for students | FR-4.3, Tenant |
-| LSM-92 | `test_submission_filters.py` | 6 | Grading queue late-only / on-time-only / both; course dropdown lists only courses you grade; filters passed back to the page; real page keeps filters in the chips and dropdowns | FR-3.5, FR-4.5 |
-
-Each PR passes on its own (148 tests) and both together pass (154).
+### Sidebar badge, grading filters, gradebook
+- **`test_nav_badge.py` (6), LSM-97:** instructors see their own ungraded count, admins the whole school, another school sees 0, students get nothing; the count drops after grading; the real page shows the Grading badge for instructors and the Grades link for students.
+- **`test_submission_filters.py` (6), LSM-92:** late only, on time only, or both; the course dropdown lists only courses you grade; filters are passed back to the page; on the real page the chips and dropdowns keep the selected filters.
+- **`test_gradebook.py` (5):** the % counts graded work only (171 / 200 = 85.5%, not 171 / 550) and matches the student dashboard's current grade; past-due work with no submission shows **Missing**, work not due yet shows "—"; graded late work keeps its Late badge; no graded work shows "—" for the %.
 
 ## Not covered yet
 

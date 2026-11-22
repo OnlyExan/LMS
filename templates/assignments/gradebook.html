@@ -13,7 +13,7 @@
   <header class="dash-header">
     <div>
       <h1>Gradebook</h1>
-      <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible</p>
+      <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only</p>
     </div>
   </header>
 
@@ -25,8 +25,8 @@
           {% for a in assignments %}
             <th title="{{ a.title }}">{{ a.title|truncatechars:12 }}</th>
           {% endfor %}
-          <th>Earned</th>
-          <th>%</th>
+          <th title="Points earned / points possible on graded work">Earned</th>
+          <th title="Grade so far: graded work only">%</th>
         </tr>
       </thead>
       <tbody>
@@ -37,16 +37,18 @@
             <td>
               {% if cell.grade %}
                 {{ cell.grade.percentage|floatformat:0 }}%
+                {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
               {% elif cell.submission %}
                 <span class="muted">Ungraded</span>
                 {% if cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
+              {% elif cell.missing %}
+                <span class="status status-off">Missing</span>
               {% else %}
-                {# no submission yet #}
-                <span class="status status-off">Late</span>
+                <span class="muted" title="Not due yet">—</span>
               {% endif %}
             </td>
           {% endfor %}
-          <td><strong>{{ row.earned|floatformat:"-2" }}</strong></td>
+          <td><strong>{{ row.earned|floatformat:"-2" }}</strong><span class="muted"> / {{ row.graded_possible|floatformat:"-2" }}</span></td>
           <td>
             {% if row.percent is not None %}
               {{ row.percent|floatformat:1 }}%
