@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if submission %}Resubmit{% else %}Submit{% endif %} {{ assignment.title }}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-page narrow">
+  <a href="{% url 'assignments:assignment_detail' assignment.pk %}" class="back-link">‹ Back to assignment</a>
+
+  <div class="admin-header">
+    <div>
+      <h1>{% if submission %}Resubmit{% else %}Submit assignment{% endif %}</h1>
+      <p class="muted">{{ assignment.title }} · {{ assignment.course.code }}</p>
+    </div>
+  </div>
+
+  <form method="post" enctype="multipart/form-data" class="form-card">
+    {% csrf_token %}
+    {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+
+    <label class="field">
+      <span>Response</span>
+      <textarea name="response_text">{{ form.response_text.value|default:'' }}</textarea>
+      {% for error in form.response_text.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+    </label>
+
+    {% if form.file_upload %}
+      <label class="field">
+        <span>File upload</span>
+        {{ form.file_upload }}
+        {% if form.file_upload.help_text %}<span class="muted small">{{ form.file_upload.help_text }}</span>{% endif %}
+        {% for error in form.file_upload.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+      </label>
+    {% endif %}
+
+    <div class="form-foot">
+      <span class="muted small">Due {{ assignment.due_date|date:"M j, Y, g:i A" }}{% if assignment.due_date|timeuntil %} · {{ assignment.due_date|timeuntil }} remaining{% endif %}</span>
+      <div>
+        <a class="btn-outline" href="{% url 'assignments:assignment_detail' assignment.pk %}">Cancel</a>
+        <button type="submit" class="btn-primary">{% if submission %}Resubmit{% else %}Submit{% endif %}</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}

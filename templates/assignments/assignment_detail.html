@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ assignment.title }}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dash">
+  <a href="{% url 'courses:course_detail' course.pk %}" class="back-link">‹ Back to {{ course.code }}</a>
+
+  <header class="dash-header">
+    <div>
+      <p class="muted">{{ course.code }} · {{ course.title }}</p>
+      <h1>{{ assignment.title }}</h1>
+      <p class="muted">
+        Due {{ assignment.due_date|date:"M j, Y, g:i A" }}
+        · {{ assignment.points_possible|floatformat:"-2" }} point{{ assignment.points_possible|pluralize }}
+        {% if is_past_due %}<span class="status status-off">Past due</span>{% endif %}
+      </p>
+    </div>
+
+    {% if user.role == "admin" or user == course.instructor %}
+      <div class="actions">
+        <a class="btn-outline" href="{% url 'assignments:assignment_edit' assignment.pk %}">Edit assignment</a>
+        <form method="post" action="{% url 'assignments:assignment_delete' assignment.pk %}"
+              onsubmit="return confirm('Delete {{ assignment.title }}? All submissions and grades for it will be deleted.');">
+          {% csrf_token %}
+          <button class="btn-danger" type="submit">Delete assignment</button>
+        </form>
+      </div>
+    {% endif %}
+  </header>
+
+  {% if assignment.description %}
+    <section class="form-card">
+      <h2 class="card-title">Instructions</h2>
+      <div>{{ assignment.description|linebreaks }}</div>
+    </section>
+  {% endif %}
+
+  {% if user.role == "student" %}
+    <h2 class="section-title">Your submission</h2>
+    <div class="form-card">
+      {% if submission %}
+        <p class="muted small">
+          Submitted {{ submission.submitted_at|date:"M j, Y, g:i A" }}
+          {% if submission.is_late %}<span class="status status-late">Late</span>{% endif %}
+        </p>
+
+        {% if submission.response_text %}
+          <div>
+            <p class="muted small">Response</p>
+            <p>{{ submission.response_text|linebreaksbr }}</p>
+          </div>
+        {% endif %}
+
+        {% if submission.file_upload %}
+          <p><a class="btn-outline btn-sm" href="{{ submission.file_upload.url }}" target="_blank" rel="noopener">Download your file</a></p>
+        {% endif %}
+
+        {% if grade %}
+          <div>
+            <p class="muted small">Grade</p>
+            <p><strong>{{ grade.points_earned|floatformat:"-2" }} / {{ assignment.points_possible|floatformat:"-2" }}</strong> ({{ grade.percentage|floatformat:1 }}%)</p>
+            {% if grade.feedback %}<p>{{ grade.feedback|linebreaksbr }}</p>{% endif %}
+          </div>
+        {% elif can_submit %}
+          <p class="muted">Your submission has not been graded yet.</p>
+        {% endif %}
+
+        {% if can_submit %}
+          <div class="form-foot">
+            <span class="muted small">You can replace your submission until it is graded.</span>
+            <a class="btn-primary" href="{% url 'assignments:submit' assignment.pk %}">Resubmit</a>
+          </div>
+        {% endif %}
+      {% else %}
+        <p class="muted">You have not submitted this assignment yet.</p>
+        {% if can_submit %}
+          <div class="form-foot">
+            <span class="muted small">{{ assignment.due_date|timeuntil }} remaining</span>
+            <a class="btn-primary" href="{% url 'assignments:submit' assignment.pk %}">Submit assignment</a>
+          </div>
+        {% endif %}
+      {% endif %}
+    </div>
+
+    {% if versions %}
+      <h2 class="section-title">Submission history</h2>
+      <ul class="activity-list">
+        {% for version in versions %}
+          <li class="activity-item">
+            <strong>Version {{ version.number }}</strong>
+            <span class="muted small">{{ version.submitted_at|date:"M j, Y, g:i A" }}</span>
+            {% if version.is_late %}<span class="status status-late">Late</span>{% endif %}
+            {% if version.response_text %}<p>{{ version.response_text|linebreaksbr }}</p>{% endif %}
+            {% if version.file_upload %}<a href="{{ version.file_upload.url }}" target="_blank" rel="noopener">Download file</a>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+  {% else %}
+    <h2 class="section-title">Submission overview</h2>
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr><th>Submitted</th><th>Student</th><th>Status</th><th>Grade</th><th></th></tr>
+        </thead>
+        <tbody>
+        {% for item in submissions %}
+          <tr>
+            <td>{{ item.submitted_at|date:"M j, Y, g:i A" }}</td>
+            <td><strong>{{ item.student.get_full_name|default:item.student.username }}</strong><div class="muted small">@{{ item.student.username }}</div></td>
+            <td>{% if item.is_late %}<span class="status status-late">Late</span>{% else %}<span class="status status-on">On time</span>{% endif %}</td>
+            <td>{% if item.grade %}{{ item.grade.points_earned|floatformat:"-2" }} / {{ assignment.points_possible|floatformat:"-2" }}{% else %}<span class="status status-pending">Not graded</span>{% endif %}</td>
+            <td class="actions-cell"><a class="btn-outline btn-sm" href="{% url 'assignments:grade_submission' item.pk %}">{% if item.grade %}Review{% else %}Grade{% endif %}</a></td>
+          </tr>
+        {% empty %}
+          <tr><td colspan="5" class="empty-row">No submissions yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <p class="muted small-note">{{ submission_count }} submission{{ submission_count|pluralize }} · {{ ungraded_count }} ungraded · {{ enrolled_count }} enrolled</p>
+  {% endif %}
+</section>
+{% endblock %}

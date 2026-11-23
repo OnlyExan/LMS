@@ -45,6 +45,8 @@
 
 .btn-sm { height: 30px; padding: 0 0.7rem; font-size: 0.8rem; }
 .btn-danger-outline:hover { border-color: #dc2626; color: #dc2626; }
+.btn-danger { height: 38px; padding: 0 1rem; border: 0; border-radius: 7px; background: #dc2626; color: #fff; font: inherit; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+.btn-danger:hover { background: #b91c1c; }
 
 /* invite page */
 .admin-page.narrow { max-width: 720px; }
