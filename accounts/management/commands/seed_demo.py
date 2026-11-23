@@ -9,7 +9,8 @@ from django.utils import timezone
 
 from accounts.models import School, User
 from assignments.models import Assignment, Grade, Submission
-from courses.models import Course, Enrollment
+from courses.grading import PLUS_MINUS_SCALE
+from courses.models import AssignmentGroup, Course, Enrollment
 
 PASSWORD = "lmsdemo1"  # passes Django's default validators
 
@@ -32,6 +33,18 @@ SCHOOLS = {
         "instructors": [("rt_prof", "Sam", "Rivera")],
         "students": [("rt_stu1", "Lena", "Cho"), ("rt_stu2", "Max", "Ford")],
         "courses": [("CS101", "Intro to Programming", "rt_prof")],
+    },
+}
+
+# one course shows the grading options; the rest stay on total points + default A-F
+COURSE_GRADING = {
+    "CSE4400": {
+        "scale": PLUS_MINUS_SCALE,
+        # (group, weight %, assignments)
+        "groups": [("Homework", 40, ["Homework 1", "Homework 2", "Homework 3"]),
+                   ("Projects", 35, ["Project Proposal"]),
+                   ("Final", 25, ["Final Project"])],
+        "grade_recent": True,  # grade the proposals too, so two groups count and weights matter
     },
 }
 
@@ -93,6 +106,12 @@ class Command(BaseCommand):
                     if (j + idx) % 4 != 3:
                         Enrollment.objects.get_or_create(student=stu, course=course)
 
+                grading = COURSE_GRADING.get(code, {})
+                if grading:
+                    course.grading_scale = grading["scale"]
+                    course.weighted_grading = True
+                    course.save(update_fields=["grading_scale", "weighted_grading"])
+
                 enrolled = [e.student for e in course.enrollments.filter(status="active")]
                 for a_idx, (a_title, days, pts) in enumerate(ASSIGNMENTS):
                     asg, _ = Assignment.objects.get_or_create(
@@ -100,6 +119,13 @@ class Command(BaseCommand):
                         defaults=dict(due_date=now + timedelta(days=days),
                                       points_possible=pts,
                                       description=f"{a_title} for {code}."))
+                    for pos, (g_name, weight, titles) in enumerate(grading.get("groups", [])):
+                        if a_title in titles:
+                            group, _ = AssignmentGroup.objects.update_or_create(
+                                course=course, name=g_name, defaults=dict(weight=weight, position=pos))
+                            if asg.group_id != group.pk:
+                                asg.group = group
+                                asg.save(update_fields=["group"])
                     if days > 7:
                         continue  # final project: nothing submitted yet
                     for s_idx, stu in enumerate(enrolled):
@@ -119,7 +145,9 @@ class Command(BaseCommand):
                                 submitted_at=when, is_late=late)
                             sub.versions.update(submitted_at=when, is_late=late)
                         # older work is graded, newest past-due work left ungraded
-                        if days <= -5 and not hasattr(sub, "grade"):
+                        # weighted demo course also grades its newest work (queue keeps the others')
+                        recent = grading.get("grade_recent") and days < 0
+                        if (days <= -5 or recent) and not hasattr(sub, "grade"):
                             score = pts * Decimal(70 + (s_idx * 7 + a_idx * 5) % 30) / 100
                             Grade.objects.create(submission=sub, points_earned=round(score, 2),
                                                  feedback="Nice work." if score > pts * Decimal("0.85")
@@ -132,6 +160,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"\nDone. Every demo user's password: {PASSWORD}\n"
             "  admin:      demo_admin   (Cal State Demo)\n"
+            "  CSE4400 is weighted (Homework 40 / Projects 35 / Final 25) with a +/- scale\n"
             "  instructor: prof_gonzalez / prof_lee\n"
             "  student:    stu_maria, stu_jay, stu_kim, stu_omar, stu_tess\n"
             "  other school: rt_admin, rt_prof, rt_stu1, rt_stu2"))
