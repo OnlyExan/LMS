@@ -279,9 +279,10 @@ def user_detail(request, pk):
                          .select_related("course__instructor").order_by("status", "course__code")),
             submissions=subs[:15],  # most recent
             stats={
-                "submitted": len(subs),
+                # gradebook "missing" placeholders aren't real work
+                "submitted": sum(not s.is_empty for s in subs),
                 "graded": len(graded),
-                "late": sum(s.is_late for s in subs),
+                "late": sum(s.is_late and not s.is_empty for s in subs),
                 "average": (sum(s.grade.percentage for s in graded) / len(graded)) if graded else None,
             },
         )

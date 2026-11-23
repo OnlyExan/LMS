@@ -1,0 +1,21 @@
+{% load static %}
+{# shared layout for 403/404/500; standalone (no base.html) so it renders even when something is broken #}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LMS | {% block heading %}{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'css/login.css' %}">
+</head>
+<body>
+<main class="login-container">
+  <div class="login-card invite-header">
+    <div class="status-icon">{% block icon %}!{% endblock %}</div>
+    <h1>{% block title %}{% endblock %}</h1>
+    <p class="sub">{% block message %}{% endblock %}</p>
+    <a href="/" class="login-button link-button">Go to dashboard</a>
+  </div>
+</main>
+</body>
+</html>

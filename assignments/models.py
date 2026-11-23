@@ -51,10 +51,12 @@ class Submission(models.Model):
     class Meta:
         unique_together = ("assignment", "student")
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, record_version=True, **kwargs):
         # recomputed on every (re)submit
         self.is_late = timezone.now() > self.assignment.due_date
         super().save(*args, **kwargs)
+        if not record_version:  # gradebook placeholder for missing work: nothing to snapshot
+            return
         # snapshot every submit/resubmit so old versions stay viewable
         SubmissionVersion.objects.create(
             submission=self,
@@ -63,6 +65,11 @@ class Submission(models.Model):
             file_upload=self.file_upload.name or None,
             is_late=self.is_late,
         )
+
+    @property
+    def is_empty(self):
+        """No text and no file: created by the gradebook to grade missing work (students can't submit empty)."""
+        return not self.response_text and not self.file_upload
 
     def __str__(self):
         return f"{self.student.username} -> {self.assignment}"

@@ -2,6 +2,7 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
+from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from accounts.decorators import instructor_required, school_member_required, student_required
@@ -72,6 +73,7 @@ def course_detail(request, pk):
         "is_enrolled": is_enrolled,
         "can_manage": can_manage,
         "assignments": assignments,
+        "now": timezone.now(),  # past-due dates show in red
     })
 
 

@@ -232,3 +232,6 @@ AXES_LOCKOUT_PARAMETERS = [
 AXES_RESET_ON_SUCCESS = True
 
 AXES_LOCKOUT_TEMPLATE = 'accounts/locked_out.html'
+
+# real visitor IP behind Vercel's proxy (see accounts/client_ip.py)
+AXES_CLIENT_IP_CALLABLE = 'accounts.client_ip.client_ip'

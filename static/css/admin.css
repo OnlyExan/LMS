@@ -177,3 +177,46 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .actions-cell { text-align: left; }           /* Edit buttons line up on every row */
 .data-table td:first-child + td { min-width: 200px; }
 .data-table tr:has(.you) { background: #f8fafc; } /* your own row, subtly marked */
+
+/* gradebook: editable grid, scrolls sideways, name + totals pinned */
+.dash.dash-wide { max-width: none; margin-left: 1.5rem; margin-right: 1.5rem; }
+.gradebook td:first-child + td { min-width: 0; }  /* undo the Manage Users column rule */
+.gradebook th { white-space: normal; vertical-align: bottom; min-width: 7rem; max-width: 10rem; line-height: 1.3;
+               text-transform: none; letter-spacing: 0; font-size: 0.8rem; font-weight: 600; color: #374151; }
+.gradebook th.gb-num { min-width: 0; }
+.gb-pts { display: block; margin-top: 0.15rem; font-weight: 500; color: #9ca3af; }
+.gradebook td { white-space: nowrap; }
+.gradebook .muted { margin: 0; }  /* .dash .muted adds a top margin */
+.gb-cell { display: inline-flex; align-items: center; gap: 0.35rem; }
+
+/* pinned columns: student on the left, Earned + % on the right */
+.gradebook .gb-student { position: sticky; left: 0; z-index: 1; background: #fff; box-shadow: 1px 0 0 #e5e7eb; }
+.gradebook .gb-earned, .gradebook .gb-pct { position: sticky; z-index: 1; background: #fff; }
+.gradebook .gb-pct { right: 0; min-width: 4.5rem; width: 4.5rem; }
+.gradebook .gb-earned { right: 4.5rem; min-width: 7rem; box-shadow: -1px 0 0 #e5e7eb; }
+.gradebook thead th.gb-student, .gradebook thead th.gb-earned, .gradebook thead th.gb-pct { background: #f8fafc; z-index: 2; }
+.gradebook tbody tr:hover .gb-student, .gradebook tbody tr:hover .gb-earned, .gradebook tbody tr:hover .gb-pct { background: #f8fafc; }
+.gradebook .gb-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* editable cells */
+.gradebook td.gb-edit { padding-top: 0.45rem; padding-bottom: 0.45rem; }
+.gb-input { width: 4.2rem; height: 32px; padding: 0 0.45rem; border: 1px solid #d1d5db; border-radius: 6px;
+            font: inherit; text-align: right; font-variant-numeric: tabular-nums; background: #fff; }
+.gb-input:focus { outline: 2px solid var(--brand, #2563eb); outline-offset: 0; border-color: transparent; }
+.gb-input::placeholder { color: #9ca3af; }
+.gb-dirty .gb-input { background: #fef9c3; border-color: #eab308; }  /* changed, not saved */
+.gb-err .gb-input { background: #fee2e2; border-color: #dc2626; }
+.gb-err-msg { display: block; margin-top: 0.2rem; font-size: 0.72rem; color: #b91c1c; white-space: normal; max-width: 9rem; }
+.gb-open { color: #9ca3af; text-decoration: none; font-size: 0.85rem; }
+.gb-open:hover { color: var(--brand, #2563eb); }
+
+.gb-actions { display: flex; align-items: center; gap: 0.6rem; }
+.gb-actions .btn-primary:disabled { opacity: 0.5; cursor: default; }
+.gb-hint { margin: 0.6rem 0 1rem !important; }
+
+/* polish pass */
+.field .muted.small { font-weight: 400; }  /* help text under a field label isn't bold */
+.search select { height: 38px; }  /* dropdowns in search bars match the inputs */
+.activity-item .status { align-self: flex-start; }  /* Late badge stays a pill in version history */
+.invite-body { max-width: 720px; }
+.invite-intro { margin: 0 0 1rem !important; }

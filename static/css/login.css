@@ -78,7 +78,7 @@ body {
 
 /* Focus and Filled Input Effects */
 .input-group input:focus,
-.input-group input:valid {
+.input-group input:not(:placeholder-shown) {
     border-color: #2563eb;
 }
 

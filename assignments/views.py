@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
+from django.db import transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -225,29 +227,119 @@ def my_grades(request):
     return render(request, "assignments/my_grades.html", {"grades": grades})
 
 
+def _parse_points(raw, possible):
+    """Gradebook cell -> (Decimal, None) or (None, error message)."""
+    try:
+        pts = Decimal(raw)
+    except InvalidOperation:
+        return None, "Enter a number."
+    if not pts.is_finite():
+        return None, "Enter a number."
+    if pts != pts.quantize(Decimal("0.01")):
+        return None, "Use at most 2 decimal places."
+    if pts < 0 or pts > possible:
+        return None, f"Must be between 0 and {possible.normalize():f}."
+    return pts, None
+
+
 @instructor_required
 def gradebook(request, course_pk):
     course = get_managed_course(request, course_pk)
     assignments = list(course.assignments.order_by("due_date"))
     enrollments = (course.enrollments.filter(status=Enrollment.ACTIVE)
                    .select_related("student").order_by("student__last_name", "student__username"))
-    subs = (Submission.objects.filter(assignment__course=course)
-            .select_related("grade"))
+    subs = list(Submission.objects.filter(assignment__course=course)
+                .select_related("grade", "assignment"))
     by_key = {(s.student_id, s.assignment_id): s for s in subs}
+
+    now = timezone.now()
+    students = {e.student_id: e.student for e in enrollments}
+    asg_by_pk = {a.pk: a for a in assignments}
+
+    # bulk grading. Inputs: g-<submission pk> for submitted work,
+    # m-<student pk>-<assignment pk> for missing work (past due, never submitted).
+    # Only cells that belong to this gradebook count; anything else is ignored.
+    errors, entered = {}, {}
+    if request.method == "POST":
+        by_pk = {s.pk: s for s in subs}
+        changes, missing_changes = [], []
+        for key, raw in request.POST.items():
+            raw = raw.strip()
+            if key.startswith("g-") and key[2:].isdigit():
+                sub = by_pk.get(int(key[2:]))
+                if sub is None:
+                    continue
+                ckey = sub.pk
+                entered[ckey] = raw
+                current = getattr(sub, "grade", None)
+                if raw == "":
+                    if current:
+                        errors[ckey] = "Grades can't be cleared. Enter a score."
+                    continue  # still ungraded
+                pts, err = _parse_points(raw, sub.assignment.points_possible)
+                if err:
+                    errors[ckey] = err
+                elif not current or current.points_earned != pts:
+                    changes.append((sub, pts))
+            elif key.startswith("m-"):
+                parts = key[2:].split("-")
+                if len(parts) != 2 or not all(p.isdigit() for p in parts):
+                    continue
+                student, a = students.get(int(parts[0])), asg_by_pk.get(int(parts[1]))
+                if not student or not a or (student.pk, a.pk) in by_key or a.due_date >= now:
+                    continue  # not a missing cell in this gradebook
+                ckey = ("m", student.pk, a.pk)
+                entered[ckey] = raw
+                if raw == "":
+                    continue  # leave it missing
+                pts, err = _parse_points(raw, a.points_possible)
+                if err:
+                    errors[ckey] = err
+                else:
+                    missing_changes.append((student, a, pts))
+        if errors:
+            n = len(errors)
+            messages.error(request, f"{n} cell{'s' if n != 1 else ''} need fixing. Nothing was saved.")
+        else:
+            with transaction.atomic():  # all or nothing
+                for sub, pts in changes:
+                    Grade.objects.update_or_create(
+                        submission=sub, defaults={"points_earned": pts, "graded_by": request.user})
+                for student, a, pts in missing_changes:
+                    # empty submission so the grade has something to attach to (shows as Missing)
+                    sub = Submission(assignment=a, student=student, response_text="")
+                    sub.save(record_version=False)
+                    Grade.objects.create(submission=sub, points_earned=pts, graded_by=request.user)
+            n = len(changes) + len(missing_changes)
+            messages.success(request, f"Saved {n} grade{'s' if n != 1 else ''}." if n else "No changes to save.")
+            return redirect("assignments:gradebook", course_pk=course.pk)
 
     total_possible = sum(a.points_possible for a in assignments)
     rows = []
     for e in enrollments:
-        cells, earned = [], 0
+        cells, earned, graded_possible = [], 0, 0
         for a in assignments:
             s = by_key.get((e.student_id, a.id))
             g = getattr(s, "grade", None) if s else None
             if g:
                 earned += g.points_earned
-            cells.append({"assignment": a, "submission": s, "grade": g})
+                graded_possible += a.points_possible
+            cells.append({"assignment": a, "submission": s, "grade": g,
+                          "missing": s is None and a.due_date < now,  # past due, never submitted
+                          # after a failed save, show what was typed + why it was rejected
+                          "orig": f"{g.points_earned.normalize():f}" if g else "",
+                          "value": entered.get(s.pk) if s and s.pk in entered else (
+                              f"{g.points_earned.normalize():f}" if g else ""),
+                          "error": errors.get(s.pk) if s else None})
+            if s is None and a.due_date < now:  # missing cell: can be given a score (usually 0)
+                mkey = ("m", e.student_id, a.pk)
+                cells[-1].update(value=entered.get(mkey, ""), error=errors.get(mkey))
+        # % of graded work only, same as the student dashboard's current grade;
+        # ungraded, missing and not-yet-due work don't count yet
         rows.append({"student": e.student, "cells": cells, "earned": earned,
-                     "percent": (earned / total_possible * 100) if total_possible else None})
+                     "graded_possible": graded_possible,
+                     "percent": (earned / graded_possible * 100) if graded_possible else None})
     return render(request, "assignments/gradebook.html", {
         "course": course, "assignments": assignments, "rows": rows,
-        "total_possible": total_possible,
+        "total_possible": total_possible, "has_errors": bool(errors),
     })

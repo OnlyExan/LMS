@@ -58,7 +58,7 @@
 
         <div class="form-foot">
           <span class="muted small">Username: <code>{{ user.username }}</code> (can't be changed)</span>
-          <button class="btn-primary">Save profile</button>
+          {% if can_edit_details %}<button class="btn-primary">Save profile</button>{% endif %}
         </div>
       </form>
 

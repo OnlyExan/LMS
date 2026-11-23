@@ -105,7 +105,18 @@ You can only see a course's assignments after you enroll.
 To change a grade, find the submission under **Graded** and save it again. Once a submission is graded, the student can no longer resubmit it. You can only grade submissions in courses you teach.
 
 ### Gradebook
-**Gradebook** (from the course page or your dashboard) shows a table of every enrolled student against every assignment, with **Late** and **Ungraded** marked, plus each student's total points and percent.
+**Gradebook** (from the course page or your dashboard) shows every enrolled student against every assignment, plus each student's **Earned** points and **%**. The % counts graded work only, the same as the student sees on their dashboard.
+
+You can grade straight from the gradebook, like a spreadsheet:
+1. Type points into any submitted cell. Changed cells turn yellow, and Earned and % update as you type.
+2. Use **Enter** or **↓** to move down a column, **↑** to move up, and **Esc** to undo a cell. **Undo changes** resets everything you haven't saved.
+3. Click **Save grades** to save every change at once. If any cell is invalid (over the points possible, negative, not a number, more than 2 decimals), it's outlined in red with the reason and **nothing** is saved until you fix it.
+
+- **Missing** cells (past due, never turned in) can be graded too: type a score, usually **0**, and save. The cell keeps a **Missing** badge so it's clear nothing was turned in, the score counts toward the student's grade, and the student can no longer submit that assignment.
+- **—** cells (not due yet) can't be graded.
+- The **↗** next to a score opens the submission, where you can read the work, download files, see earlier versions and add feedback.
+- With many assignments the table scrolls sideways; the student names and the Earned / % columns stay in place.
+- If you try to leave with unsaved changes, the browser asks you to confirm.
 
 ## School admins
 

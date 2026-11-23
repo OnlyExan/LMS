@@ -44,7 +44,7 @@
       <a class="btn btn-secondary" href="{% url 'courses:roster' course.pk %}">Roster</a>
       <a class="btn btn-secondary" href="{% url 'assignments:gradebook' course.pk %}">Gradebook</a>
       <form method="post" action="{% url 'courses:course_delete' course.pk %}" class="inline-form"
-            onsubmit="return confirm('Delete {{ course.code }}? This removes all its assignments, submissions and grades.');">
+            onsubmit="return confirm('Delete {{ course.code|escapejs }}? This removes all its assignments, submissions and grades.');">
         {% csrf_token %}<button type="submit" class="btn-outline btn-danger-outline">Delete course</button>
       </form>
     {% endif %}
@@ -62,7 +62,7 @@
               <strong>{{ a.title }}</strong>
               <span class="muted">{{ a.points_possible|floatformat:"-2" }} pts</span>
             </a>
-            <span class="due-when">{{ a.due_date|date:"D M j, g:i A" }}</span>
+            <span class="due-when {% if a.due_date < now %}due-past" title="Past due{% else %}due-future{% endif %}">{{ a.due_date|date:"D M j, g:i A" }}</span>
           </li>
         {% endfor %}
       </ul>
