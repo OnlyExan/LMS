@@ -15,5 +15,6 @@ urlpatterns = [
     path("submissions/", views.submission_list, name="submission_list"),
     path("submissions/<int:pk>/grade/", views.grade_submission, name="grade_submission"),
     path("grades/", views.my_grades, name="my_grades"),
+    path("grades/<int:course_pk>/", views.course_grades, name="course_grades"),
     path("course/<int:course_pk>/gradebook/", views.gradebook, name="gradebook"),
 ]

@@ -67,7 +67,8 @@ You can only see a course's assignments after you enroll.
 **Resubmitting:** you can resubmit as many times as you like **until the assignment is graded**. Every attempt is kept, so your instructor can see your earlier versions.
 
 ### Seeing your grades
-- **Grades** in the sidebar (or **See all grades** on your dashboard) lists every graded assignment with points, percent and your instructor's feedback.
+- **Grades** in the sidebar (or **See all grades** on your dashboard) lists each of your courses with your current grade. The grade is points earned ÷ points possible on graded work only, so ungraded work doesn't count yet.
+- Click a course (or **My grades** on the course page) to see every assignment in it: Graded, Submitted, Missing or Upcoming, plus your score and your instructor's feedback.
 - Only you, your instructors and your school's admins can see your grades.
 
 ## Instructors

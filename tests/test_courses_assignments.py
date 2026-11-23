@@ -149,7 +149,7 @@ class AssignmentFlowTests(LMSTestCase):
 
         self.login(a["stu"])
         r = self.client.get(reverse("assignments:my_grades"))
-        self.assertEqual(len(r.context["grades"]), 1)
+        self.assertEqual(r.context["courses"][0]["percent"], 90)
         # graded submissions are locked
         r = self.client.post(reverse("assignments:submit", args=[a["asg"].pk]), {"response_text": "redo"})
         sub.refresh_from_db()

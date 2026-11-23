@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}{{ course.code }} grades{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<section class="dash">
+  <a href="{% url 'assignments:my_grades' %}" class="back-link">‹ All grades</a>
+
+  <header class="dash-header">
+    <div>
+      <h1>{{ course.code }} grades</h1>
+      <p class="muted">{{ course.title }} · {{ score.graded }} of {{ rows|length }} graded</p>
+    </div>
+    <div class="grade-summary">
+      <span class="grade-big">{% if score.percent is not None %}{{ score.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
+      {% if score.graded %}<span class="muted">{{ score.earned|floatformat:"-2" }} / {{ score.possible|floatformat:"-2" }} pts</span>{% endif %}
+    </div>
+  </header>
+
+  {% if rows %}
+    <div class="table-card">
+      <table class="data-table">
+        <thead>
+          <tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th><th>Feedback</th></tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          <tr>
+            <td><strong>{{ r.assignment.title }}</strong></td>
+            <td>{{ r.assignment.due_date|date:"M j, g:i A" }}</td>
+            <td>
+              {% if r.status == "graded" %}<span class="status status-on">Graded</span>
+              {% elif r.status == "submitted" %}<span class="status status-pending">Submitted</span>
+              {% elif r.status == "missing" %}<span class="status status-off">Missing</span>
+              {% else %}<span class="status status-muted">Upcoming</span>{% endif %}
+              {% if r.submission.is_late %}<span class="status status-late">Late</span>{% endif %}
+            </td>
+            <td>
+              {% if r.grade %}{{ r.grade.points_earned|floatformat:"-2" }} / {{ r.assignment.points_possible|floatformat:"-2" }}
+                <span class="muted">({{ r.grade.percentage|floatformat:1 }}%)</span>
+              {% else %}<span class="muted">— / {{ r.assignment.points_possible|floatformat:"-2" }}</span>{% endif %}
+            </td>
+            <td>{% if r.grade.feedback %}{{ r.grade.feedback|linebreaksbr }}{% else %}<span class="muted">—</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% else %}
+    <div class="empty-card"><p>No assignments in this course yet.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

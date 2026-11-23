@@ -218,13 +218,59 @@ def grade_submission(request, pk):
                    "versions": submission.versions.all()})
 
 
+def _course_score(rows):
+    """Earned / possible over graded work only (same math as the gradebook)."""
+    graded = [r for r in rows if r["grade"]]
+    earned = sum((r["grade"].points_earned for r in graded), Decimal(0))
+    possible = sum((r["assignment"].points_possible for r in graded), Decimal(0))
+    percent = earned / possible * 100 if possible else None
+    return {"earned": earned, "possible": possible, "percent": percent, "graded": len(graded)}
+
+
+def _student_rows(student, course, now):
+    """One row per assignment in the course: status, grade, submission."""
+    subs = {s.assignment_id: s for s in Submission.objects.filter(student=student, assignment__course=course)
+            .select_related("grade")}
+    rows = []
+    for a in course.assignments.order_by("due_date"):
+        sub = subs.get(a.pk)
+        grade = getattr(sub, "grade", None) if sub else None
+        if grade:
+            status = "graded"
+        elif sub:
+            status = "submitted"
+        elif a.due_date and a.due_date < now:
+            status = "missing"
+        else:
+            status = "upcoming"
+        rows.append({"assignment": a, "submission": sub, "grade": grade, "status": status})
+    return rows
+
+
+def _student_courses(user):
+    return (school_courses(user).filter(enrollments__student=user, enrollments__status=Enrollment.ACTIVE)
+            .select_related("instructor").order_by("code"))
+
+
 @student_required
 def my_grades(request):
-    grades = (Grade.objects.filter(submission__student=request.user,
-                                   submission__assignment__course__school=request.user.school)
-              .select_related("submission__assignment__course")
-              .order_by("submission__assignment__course__code", "submission__assignment__due_date"))
-    return render(request, "assignments/my_grades.html", {"grades": grades})
+    """Grades tab: one line per enrolled course with its current %."""
+    now = timezone.now()
+    courses = []
+    for course in _student_courses(request.user):
+        rows = _student_rows(request.user, course, now)
+        courses.append({"course": course, "total": len(rows), **_course_score(rows),
+                        "missing": sum(r["status"] == "missing" for r in rows)})
+    return render(request, "assignments/my_grades.html", {"courses": courses})
+
+
+@student_required
+def course_grades(request, course_pk):
+    """One course's grades for the logged-in student."""
+    course = get_object_or_404(_student_courses(request.user), pk=course_pk)
+    rows = _student_rows(request.user, course, timezone.now())
+    return render(request, "assignments/course_grades.html",
+                  {"course": course, "rows": rows, "score": _course_score(rows)})
 
 
 def _parse_points(raw, possible):

@@ -11,36 +11,40 @@
   <header class="dash-header">
     <div>
       <h1>My grades</h1>
-      <p class="muted">{{ grades|length }} graded assignment{{ grades|length|pluralize }}</p>
+      <p class="muted">{{ courses|length }} course{{ courses|length|pluralize }}</p>
     </div>
     <a class="btn btn-secondary" href="{% url 'courses:course_list' %}?mine=1">My courses</a>
   </header>
 
-  {% regroup grades by submission.assignment.course as by_course %}
-  {% for group in by_course %}
-    <h2 class="section-title">{{ group.grouper.code }} — {{ group.grouper.title }}</h2>
+  {% if courses %}
     <div class="table-card">
-      <table class="data-table">
+      <table class="data-table grades-overview">
         <thead>
-          <tr><th>Assignment</th><th>Points</th><th>Percent</th><th>Feedback</th></tr>
+          <tr><th>Course</th><th>Graded</th><th>Points</th><th class="num">Grade</th></tr>
         </thead>
         <tbody>
-        {% for g in group.list %}
+        {% for c in courses %}
           <tr>
-            <td><strong>{{ g.submission.assignment.title }}</strong></td>
-            <td>{{ g.points_earned|floatformat:"-2" }} pts</td>
-            <td>{{ g.percentage|floatformat:1 }}%</td>
-            <td>{% if g.feedback %}{{ g.feedback|linebreaksbr }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td>
+              <a class="row-link" href="{% url 'assignments:course_grades' c.course.pk %}">
+                <strong>{{ c.course.code }}</strong> <span class="muted">— {{ c.course.title }}</span>
+              </a>
+              {% if c.missing %}<span class="status status-off">{{ c.missing }} missing</span>{% endif %}
+            </td>
+            <td>{{ c.graded }} of {{ c.total }}</td>
+            <td>{% if c.graded %}{{ c.earned|floatformat:"-2" }} / {{ c.possible|floatformat:"-2" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num grade-pct">{% if c.percent is not None %}{{ c.percent|floatformat:1 }}%{% else %}<span class="muted">—</span>{% endif %}</td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
     </div>
-  {% empty %}
+    <p class="muted small-note">Grade = points earned ÷ points possible on graded work only.</p>
+  {% else %}
     <div class="empty-card">
-      <p>No grades yet.</p>
-      <a class="btn" href="{% url 'assignments:assignment_list' %}">View assignments</a>
+      <p>You're not enrolled in any courses yet.</p>
+      <a class="btn" href="{% url 'courses:course_list' %}">Browse courses</a>
     </div>
-  {% endfor %}
+  {% endif %}
 </section>
 {% endblock %}

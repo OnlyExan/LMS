@@ -30,6 +30,7 @@
           {% csrf_token %}
           <button type="submit" class="btn-outline">Drop course</button>
         </form>
+        <a class="btn btn-secondary" href="{% url 'assignments:course_grades' course.pk %}">My grades</a>
       {% else %}
         <form method="post" action="{% url 'courses:enroll' course.pk %}" class="inline-form">
           {% csrf_token %}

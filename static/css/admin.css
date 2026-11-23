@@ -220,3 +220,16 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .activity-item .status { align-self: flex-start; }  /* Late badge stays a pill in version history */
 .invite-body { max-width: 720px; }
 .invite-intro { margin: 0 0 1rem !important; }
+
+/* student grades: overview + per-course page */
+.status-pending { background: #dbeafe; color: #1d4ed8; }
+.status-muted { background: #f1f5f9; color: #475569; }
+.status-late { background: #fef3c7; color: #92400e; margin-left: 0.3rem; }
+.row-link { color: inherit; text-decoration: none; }
+.row-link:hover strong { text-decoration: underline; }
+.grades-overview td .status { margin-left: 0.5rem; }
+.data-table .num { text-align: right; }
+.grade-pct { font-weight: 700; font-size: 1.05rem; }
+.grade-summary { display: flex; flex-direction: column; align-items: flex-end; }
+.grade-big { font-size: 2rem; font-weight: 800; line-height: 1; }
+.small-note { font-size: 0.8rem; margin-top: 0.5rem; }

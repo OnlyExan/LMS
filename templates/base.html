@@ -62,7 +62,7 @@
       {% if nav_ungraded %}<b class="nav-badge" title="{{ nav_ungraded }} ungraded">{{ nav_ungraded }}</b>{% endif %}
     </a>
     {% elif user.role == "student" %}
-    <a href="{% url 'assignments:my_grades' %}" class="sidenav-item{% if rm.url_name == 'my_grades' %} active{% endif %}">
+    <a href="{% url 'assignments:my_grades' %}" class="sidenav-item{% if rm.url_name == 'my_grades' or rm.url_name == 'course_grades' %} active{% endif %}">
       <svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"/></svg>
       <span>Grades</span>
     </a>

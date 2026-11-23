@@ -11,7 +11,7 @@ accounts/invite_invalid.html accounts/invite_list.html accounts/invite_user.html
 accounts/manage_users.html accounts/register.html accounts/school_settings.html
 assignments/assignment_detail.html
 assignments/assignment_form.html assignments/assignment_list.html assignments/grade_form.html
-assignments/gradebook.html assignments/my_grades.html assignments/submission_list.html
+assignments/gradebook.html assignments/my_grades.html assignments/course_grades.html assignments/submission_list.html
 assignments/submit.html courses/course_detail.html
 courses/course_form.html courses/course_list.html courses/roster.html dashboard.html
 accounts/switch_school.html""".split()
