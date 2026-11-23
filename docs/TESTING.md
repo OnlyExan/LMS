@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 193 tests, all passing (about 30 s).
+**Current result:** 202 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `193 passed, 0 failed, 0 errors, 0 skipped (193 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `202 passed, 0 failed, 0 errors, 0 skipped (202 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -74,6 +74,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_polish.py` | 4 | Friendly 403/404 pages, no Save button for students' locked profile, seed data never dated in the future | Usability | |
 | `test_security.py` | 8 | Lockout IP can't be spoofed off Vercel, unique emails (case-insensitive), logo must be a real PNG/JPG/WebP/GIF, names JS-escaped in confirm() dialogs | Security | |
 | `test_student_grades.py` | 5 | Grades tab shows each course's %, per-course page lists every assignment with Graded/Submitted/Missing/Upcoming, other-school and dropped courses 404, instructors blocked | Functional, Security | |
+| `test_letter_grades.py` | 9 | Default and custom letter scales, rounding matches the shown %, custom-scale validation (floor at 0, no duplicate letters or cutoffs, 0–100, ≤2 decimals), letters on student pages and gradebook, class average/high/low ignore dropped students | Functional | |
 | **Total** | **180** | | | |
 
 ### Security tests

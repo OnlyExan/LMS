@@ -259,7 +259,9 @@ def my_grades(request):
     courses = []
     for course in _student_courses(request.user):
         rows = _student_rows(request.user, course, now)
-        courses.append({"course": course, "total": len(rows), **_course_score(rows),
+        score = _course_score(rows)
+        courses.append({"course": course, "total": len(rows), **score,
+                        "letter": course.letter_for(score["percent"]),
                         "missing": sum(r["status"] == "missing" for r in rows)})
     return render(request, "assignments/my_grades.html", {"courses": courses})
 
@@ -269,8 +271,10 @@ def course_grades(request, course_pk):
     """One course's grades for the logged-in student."""
     course = get_object_or_404(_student_courses(request.user), pk=course_pk)
     rows = _student_rows(request.user, course, timezone.now())
+    score = _course_score(rows)
     return render(request, "assignments/course_grades.html",
-                  {"course": course, "rows": rows, "score": _course_score(rows)})
+                  {"course": course, "rows": rows, "score": score,
+                   "letter": course.letter_for(score["percent"])})
 
 
 def _parse_points(raw, possible):
@@ -385,7 +389,20 @@ def gradebook(request, course_pk):
         rows.append({"student": e.student, "cells": cells, "earned": earned,
                      "graded_possible": graded_possible,
                      "percent": (earned / graded_possible * 100) if graded_possible else None})
+        rows[-1]["letter"] = course.letter_for(rows[-1]["percent"])
+
+    # class stats per assignment: graded cells of current students only
+    stats = []
+    for i, a in enumerate(assignments):
+        pts = [r["cells"][i]["grade"].points_earned for r in rows if r["cells"][i]["grade"]]
+        stats.append({"avg": sum(pts) / len(pts) if pts else None,
+                      "high": max(pts) if pts else None, "low": min(pts) if pts else None,
+                      "count": len(pts)})
+    pcts = [r["percent"] for r in rows if r["percent"] is not None]
+    class_pct = sum(pcts) / len(pcts) if pcts else None
+    class_stats = {"assignments": stats, "percent": class_pct, "letter": course.letter_for(class_pct)}
     return render(request, "assignments/gradebook.html", {
         "course": course, "assignments": assignments, "rows": rows,
         "total_possible": total_possible, "has_errors": bool(errors),
+        "class_stats": class_stats, "scale": course.scale,
     })

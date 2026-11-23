@@ -2,6 +2,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
 from accounts.models import School
+from .grading import DEFAULT_SCALE, fmt_min, letter_for
 
 
 class Course(models.Model):
@@ -13,6 +14,8 @@ class Course(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="courses_taught"
     )
     term = models.CharField(max_length=50)
+    # [[letter, min %], ...] highest first, last min is 0; empty = school default (A 90 / B 80 / ...)
+    grading_scale = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     students = models.ManyToManyField(
         settings.AUTH_USER_MODEL, through="Enrollment", related_name="courses"
@@ -34,6 +37,25 @@ class Course(models.Model):
         return user.school_id == self.school_id and (
             user.role == "admin" or self.instructor_id == user.id
         )
+
+    @property
+    def scale(self):
+        return self.grading_scale or DEFAULT_SCALE
+
+    @property
+    def uses_custom_scale(self):
+        return bool(self.grading_scale)
+
+    def letter_for(self, percent):
+        return letter_for(self.scale, percent)
+
+    def scale_rows(self):
+        """[(letter, '90', '100'), ...] for showing the scale as ranges."""
+        rows, top = [], "100"
+        for letter, minimum in self.scale:
+            rows.append((letter, fmt_min(minimum), top))
+            top = fmt_min(minimum)
+        return rows
 
     def __str__(self):
         return f"{self.code} — {self.title}"

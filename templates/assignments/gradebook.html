@@ -15,7 +15,7 @@
     <header class="dash-header">
       <div>
         <h1>Gradebook</h1>
-        <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only</p>
+        <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only · <a class="link-muted" href="{% url 'courses:course_edit' course.pk %}" title="Change in course settings">{% if course.uses_custom_scale %}custom{% else %}default{% endif %} letter scale</a></p>
       </div>
       {% if rows %}
       <div class="gb-actions">
@@ -80,17 +80,46 @@
             </td>
             <td class="gb-num gb-pct">
               <span class="gb-pct-val">{% if row.percent is not None %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
+              <span class="gb-letter">{{ row.letter|default:"" }}</span>
             </td>
           </tr>
         {% empty %}
           <tr><td colspan="100" class="empty-row">No enrolled students.</td></tr>
         {% endfor %}
         </tbody>
+        {% if rows %}
+        <tfoot>
+          <tr class="gb-stat gb-stat-first">
+            <th class="gb-student" scope="row">Class average</th>
+            {% for st in class_stats.assignments %}
+              <td class="gb-stat-cell" data-stat="avg" data-col="{{ forloop.counter0 }}">{% if st.avg is not None %}{{ st.avg|floatformat:"-2" }}{% else %}—{% endif %}</td>
+            {% endfor %}
+            <td class="gb-num gb-earned"></td>
+            <td class="gb-num gb-pct"><span class="gb-class-pct">{% if class_stats.percent is not None %}{{ class_stats.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
+              <span class="gb-letter gb-class-letter">{{ class_stats.letter|default:"" }}</span></td>
+          </tr>
+          <tr class="gb-stat">
+            <th class="gb-student" scope="row">High</th>
+            {% for st in class_stats.assignments %}
+              <td class="gb-stat-cell" data-stat="high" data-col="{{ forloop.counter0 }}">{% if st.high is not None %}{{ st.high|floatformat:"-2" }}{% else %}—{% endif %}</td>
+            {% endfor %}
+            <td class="gb-num gb-earned"></td><td class="gb-num gb-pct"></td>
+          </tr>
+          <tr class="gb-stat">
+            <th class="gb-student" scope="row">Low</th>
+            {% for st in class_stats.assignments %}
+              <td class="gb-stat-cell" data-stat="low" data-col="{{ forloop.counter0 }}">{% if st.low is not None %}{{ st.low|floatformat:"-2" }}{% else %}—{% endif %}</td>
+            {% endfor %}
+            <td class="gb-num gb-earned"></td><td class="gb-num gb-pct"></td>
+          </tr>
+        </tfoot>
+        {% endif %}
       </table>
     </div>
   </form>
 </section>
 
+{{ scale|json_script:"gbScale" }}
 <script>
 (() => {
   const form = document.getElementById("gbForm");
@@ -101,6 +130,11 @@
   let submitting = false;
 
   const num = v => (v.trim() === "" || isNaN(Number(v))) ? null : Number(v);
+  const fmt = n => String(parseFloat(n.toFixed(2)));
+  const scale = JSON.parse(document.getElementById("gbScale").textContent);
+  // same rule as the server: % rounded to 1 decimal, highest letter it reaches
+  const letter = p => { if (p === null) return ""; const r = Math.round(p * 10) / 10;
+    for (const [l, m] of scale) if (r >= m) return l; return scale[scale.length - 1][0]; };
   const isDirty = i => i.value.trim() !== i.dataset.orig;
 
   // live Earned / % per row: graded (or typed) cells only, same rule as the server
@@ -110,10 +144,27 @@
       const v = num(i.value);
       if (v !== null) { earned += v; possible += Number(i.dataset.possible); }
     });
-    const fmt = n => Number.isInteger(n) ? String(n) : n.toFixed(2).replace(/0+$/, "");
     tr.querySelector(".gb-earned-val").textContent = fmt(earned);
     tr.querySelector(".gb-possible-val").textContent = fmt(possible);
-    tr.querySelector(".gb-pct-val").textContent = possible ? (earned / possible * 100).toFixed(1) + "%" : "—";
+    const pct = possible ? earned / possible * 100 : null;
+    tr.dataset.pct = pct === null ? "" : pct;
+    tr.querySelector(".gb-pct-val").textContent = pct === null ? "—" : pct.toFixed(1) + "%";
+    tr.querySelector(".gb-letter").textContent = letter(pct);
+  }
+
+  // live class average / high / low per assignment + class %
+  function restat() {
+    document.querySelectorAll(".gb-stat-cell").forEach(td => {
+      const vals = inputs.filter(i => i.dataset.col === td.dataset.col).map(i => num(i.value)).filter(v => v !== null);
+      let v = null;
+      if (vals.length) v = td.dataset.stat === "avg" ? vals.reduce((a, b) => a + b, 0) / vals.length
+                         : td.dataset.stat === "high" ? Math.max(...vals) : Math.min(...vals);
+      td.textContent = v === null ? "—" : fmt(v);
+    });
+    const pcts = [...document.querySelectorAll("tr[data-row]")].map(tr => tr.dataset.pct).filter(p => p !== "" && p !== undefined).map(Number);
+    const avg = pcts.length ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null;
+    document.querySelector(".gb-class-pct").textContent = avg === null ? "—" : avg.toFixed(1) + "%";
+    document.querySelector(".gb-class-letter").textContent = letter(avg);
   }
 
   function refresh() {
@@ -135,7 +186,7 @@
   }
 
   inputs.forEach(i => {
-    i.addEventListener("input", () => { retotal(i.closest("tr")); refresh(); });
+    i.addEventListener("input", () => { retotal(i.closest("tr")); restat(); refresh(); });
     i.addEventListener("focus", () => i.select());
     i.addEventListener("keydown", e => {
       if (e.key === "Enter" || e.key === "ArrowDown") { e.preventDefault(); move(i, 1); }
@@ -147,6 +198,7 @@
   undo.addEventListener("click", () => {
     inputs.forEach(i => { i.value = i.dataset.orig; });
     document.querySelectorAll("tr[data-row]").forEach(retotal);
+    restat();
     refresh();
   });
 
@@ -156,6 +208,7 @@
   });
 
   document.querySelectorAll("tr[data-row]").forEach(retotal);
+  restat();
   refresh();
 })();
 </script>

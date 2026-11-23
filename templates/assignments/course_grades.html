@@ -16,7 +16,7 @@
       <p class="muted">{{ course.title }} · {{ score.graded }} of {{ rows|length }} graded</p>
     </div>
     <div class="grade-summary">
-      <span class="grade-big">{% if score.percent is not None %}{{ score.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
+      <span class="grade-big">{% if score.percent is not None %}{{ score.percent|floatformat:1 }}% <span class="letter-pill letter-big">{{ letter }}</span>{% else %}—{% endif %}</span>
       {% if score.graded %}<span class="muted">{{ score.earned|floatformat:"-2" }} / {{ score.possible|floatformat:"-2" }} pts</span>{% endif %}
     </div>
   </header>
@@ -53,5 +53,12 @@
   {% else %}
     <div class="empty-card"><p>No assignments in this course yet.</p></div>
   {% endif %}
+
+  <h2 class="section-title">Grading scale</h2>
+  <div class="scale-chips">
+    {% for letter, lo, hi in course.scale_rows %}
+      <span class="scale-chip"><strong>{{ letter }}</strong> {{ lo }}%{% if forloop.first %}+{% else %} – &lt;{{ hi }}%{% endif %}</span>
+    {% endfor %}
+  </div>
 </section>
 {% endblock %}

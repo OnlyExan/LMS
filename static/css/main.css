@@ -1,3 +1,4 @@
+[hidden] { display: none !important; }  /* hidden attr wins over display rules (e.g. .btn-outline) */
 /* global styles — loaded on every page via base.html */
 /* --brand is overridden per school in base.html */
 :root { --brand: #2563eb; --brand-dark: color-mix(in srgb, var(--brand) 82%, black); }

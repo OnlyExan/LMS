@@ -86,6 +86,6 @@ class InlineJsEscapeTests(TestCase):
     def test_templates_use_escapejs(self):
         for path, var in [("templates/courses/course_detail.html", "course.code"),
                           ("templates/accounts/manage_users.html", "u.username")]:
-            with open(path) as f:
+            with open(path, encoding="utf-8") as f:
                 src = f.read()
             self.assertIn("{{ %s|escapejs }}" % var, src, path)

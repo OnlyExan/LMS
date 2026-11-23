@@ -1,7 +1,63 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{% if course %}Edit {{ course.code }}{% else %}New course{% endif %}{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
+{% block title %}{% if course %}Edit {{ course.code }}{% else %}New course{% endif %}{{ form.preset_json|json_script:"scalePresets" }}
+<script>
+(() => {
+  const box = document.getElementById("scaleCustom"), rows = document.getElementById("scaleRows");
+  const presets = JSON.parse(document.getElementById("scalePresets").textContent);
+  document.querySelectorAll('input[name="scale_mode"]').forEach(r =>
+    r.addEventListener("change", () => { box.hidden = r.value !== "custom" || !r.checked; }));
+
+  function addRow(letter = "", min = "") {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td><input type="text" name="scale_letter" maxlength="3" aria-label="Letter"></td>' +
+      '<td><input type="text" name="scale_min" inputmode="decimal" aria-label="Minimum %"></td>' +
+      '<td><button type="button" class="scale-del" title="Remove">✕</button></td>';
+    tr.querySelector('[name="scale_letter"]').value = letter;
+    tr.querySelector('[name="scale_min"]').value = min;
+    rows.appendChild(tr);
+    return tr;
+  }
+  document.getElementById("scaleAdd").addEventListener("click", () => addRow().querySelector("input").focus());
+  rows.addEventListener("click", e => {
+    if (e.target.classList.contains("scale-del") && rows.children.length > 1) e.target.closest("tr").remove();
+  });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+    rows.innerHTML = "";
+    presets[b.dataset.preset].forEach(([l, m]) => addRow(l, String(m)));
+  }));
+})();
+</script>
+{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{{ form.preset_json|json_script:"scalePresets" }}
+<script>
+(() => {
+  const box = document.getElementById("scaleCustom"), rows = document.getElementById("scaleRows");
+  const presets = JSON.parse(document.getElementById("scalePresets").textContent);
+  document.querySelectorAll('input[name="scale_mode"]').forEach(r =>
+    r.addEventListener("change", () => { box.hidden = r.value !== "custom" || !r.checked; }));
+
+  function addRow(letter = "", min = "") {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td><input type="text" name="scale_letter" maxlength="3" aria-label="Letter"></td>' +
+      '<td><input type="text" name="scale_min" inputmode="decimal" aria-label="Minimum %"></td>' +
+      '<td><button type="button" class="scale-del" title="Remove">✕</button></td>';
+    tr.querySelector('[name="scale_letter"]').value = letter;
+    tr.querySelector('[name="scale_min"]').value = min;
+    rows.appendChild(tr);
+    return tr;
+  }
+  document.getElementById("scaleAdd").addEventListener("click", () => addRow().querySelector("input").focus());
+  rows.addEventListener("click", e => {
+    if (e.target.classList.contains("scale-del") && rows.children.length > 1) e.target.closest("tr").remove();
+  });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+    rows.innerHTML = "";
+    presets[b.dataset.preset].forEach(([l, m]) => addRow(l, String(m)));
+  }));
+})();
+</script>
+{% endblock %}
 
 {% block content %}
 <div class="admin-page narrow">
@@ -61,6 +117,36 @@
       </label>
     {% endif %}
 
+    <fieldset class="scale-box">
+      <legend>Letter grades</legend>
+      <p class="muted small">How the course % turns into a letter on the gradebook and students' Grades pages.</p>
+      <label class="check"><input type="radio" name="scale_mode" value="default" {% if form.mode != "custom" %}checked{% endif %}>
+        Default <span class="muted small">A 90 · B 80 · C 70 · D 60 · F below 60</span></label>
+      <label class="check"><input type="radio" name="scale_mode" value="custom" {% if form.mode == "custom" %}checked{% endif %}>
+        Custom</label>
+
+      <div id="scaleCustom" {% if form.mode != "custom" %}hidden{% endif %}>
+        <table class="scale-table">
+          <thead><tr><th>Letter</th><th>Starts at %</th><th></th></tr></thead>
+          <tbody id="scaleRows">
+          {% for letter, minimum in form.scale_rows %}
+            <tr>
+              <td><input type="text" name="scale_letter" value="{{ letter }}" maxlength="3" aria-label="Letter"></td>
+              <td><input type="text" name="scale_min" value="{{ minimum }}" inputmode="decimal" aria-label="Minimum %"></td>
+              <td><button type="button" class="scale-del" title="Remove">✕</button></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <div class="scale-tools">
+          <button type="button" class="btn-outline btn-sm" id="scaleAdd">+ Add letter</button>
+          <button type="button" class="btn-outline btn-sm" data-preset="default">Use A–F</button>
+          <button type="button" class="btn-outline btn-sm" data-preset="plusminus">Use +/–</button>
+        </div>
+        <p class="muted small">A student gets the highest letter their % reaches. The lowest letter must start at 0. Order doesn't matter; it's sorted when you save.</p>
+      </div>
+    </fieldset>
+
     <div class="form-foot">
       <span class="muted small">Code must be unique for each term in your school.</span>
       <div>
@@ -75,4 +161,32 @@
     </div>
   </form>
 </div>
+{{ form.preset_json|json_script:"scalePresets" }}
+<script>
+(() => {
+  const box = document.getElementById("scaleCustom"), rows = document.getElementById("scaleRows");
+  const presets = JSON.parse(document.getElementById("scalePresets").textContent);
+  document.querySelectorAll('input[name="scale_mode"]').forEach(r =>
+    r.addEventListener("change", () => { box.hidden = r.value !== "custom" || !r.checked; }));
+
+  function addRow(letter = "", min = "") {
+    const tr = document.createElement("tr");
+    tr.innerHTML = '<td><input type="text" name="scale_letter" maxlength="3" aria-label="Letter"></td>' +
+      '<td><input type="text" name="scale_min" inputmode="decimal" aria-label="Minimum %"></td>' +
+      '<td><button type="button" class="scale-del" title="Remove">✕</button></td>';
+    tr.querySelector('[name="scale_letter"]').value = letter;
+    tr.querySelector('[name="scale_min"]').value = min;
+    rows.appendChild(tr);
+    return tr;
+  }
+  document.getElementById("scaleAdd").addEventListener("click", () => addRow().querySelector("input").focus());
+  rows.addEventListener("click", e => {
+    if (e.target.classList.contains("scale-del") && rows.children.length > 1) e.target.closest("tr").remove();
+  });
+  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
+    rows.innerHTML = "";
+    presets[b.dataset.preset].forEach(([l, m]) => addRow(l, String(m)));
+  }));
+})();
+</script>
 {% endblock %}

@@ -67,8 +67,8 @@ You can only see a course's assignments after you enroll.
 **Resubmitting:** you can resubmit as many times as you like **until the assignment is graded**. Every attempt is kept, so your instructor can see your earlier versions.
 
 ### Seeing your grades
-- **Grades** in the sidebar (or **See all grades** on your dashboard) lists each of your courses with your current grade. The grade is points earned ÷ points possible on graded work only, so ungraded work doesn't count yet.
-- Click a course (or **My grades** on the course page) to see every assignment in it: Graded, Submitted, Missing or Upcoming, plus your score and your instructor's feedback.
+- **Grades** in the sidebar (or **See all grades** on your dashboard) lists each of your courses with your current grade and letter. The grade is points earned ÷ points possible on graded work only, so ungraded work doesn't count yet.
+- Click a course (or **My grades** on the course page) to see every assignment in it: Graded, Submitted, Missing or Upcoming, plus your score and your instructor's feedback. The course's letter-grade scale is at the bottom.
 - Only you, your instructors and your school's admins can see your grades.
 
 ## Instructors
@@ -118,6 +118,15 @@ You can grade straight from the gradebook, like a spreadsheet:
 - The **↗** next to a score opens the submission, where you can read the work, download files, see earlier versions and add feedback.
 - With many assignments the table scrolls sideways; the student names and the Earned / % columns stay in place.
 - If you try to leave with unsaved changes, the browser asks you to confirm.
+- Each student's **%** has a **letter grade** next to it.
+- The **Class average**, **High** and **Low** rows at the bottom show each assignment's stats, plus the class's average %. They only count graded cells of students still enrolled, and they update as you type.
+
+### Letter grades
+Each course turns its % into a letter. Change it under **Edit** on the course page → **Letter grades**:
+- **Default**: A 90 · B 80 · C 70 · D 60 · F below 60.
+- **Custom**: set your own letters and the % each one starts at. **Use +/–** fills in A/A-/B+… and **Use A–F** resets to the default; edit, add or remove rows from there. The lowest letter must start at 0. Letters can be up to 3 characters (e.g. **P** / **NP** for pass/no pass).
+
+A student gets the highest letter their % reaches, using the % as shown (rounded to 1 decimal), so 89.96% shows as 90.0% and gets the A. Students see their letter on the **Grades** tab and the scale on each course's grades page.
 
 ## School admins
 
