@@ -16,7 +16,7 @@
       <p class="muted">{{ course.title }} · {{ score.graded }} of {{ rows|length }} graded</p>
     </div>
     <div class="grade-summary">
-      <span class="grade-big">{% if score.percent is not None %}{{ score.percent|floatformat:1 }}% <span class="letter-pill letter-big">{{ letter }}</span>{% else %}—{% endif %}</span>
+      <span class="grade-big">{% if score.percent is not None %}<span class="grade-cell"><span>{{ score.percent|floatformat:1 }}%</span><span class="letter-pill letter-big">{{ letter }}</span></span>{% else %}—{% endif %}</span>
       {% if score.graded %}<span class="muted">{{ score.earned|floatformat:"-2" }} / {{ score.possible|floatformat:"-2" }} pts</span>{% endif %}
     </div>
   </header>
