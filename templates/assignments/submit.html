@@ -38,7 +38,7 @@
     {% endif %}
 
     <div class="form-foot">
-      <span class="muted small">Due {{ assignment.due_date|date:"M j, Y, g:i A" }}{% if assignment.due_date|timeuntil %} · {{ assignment.due_date|timeuntil }} remaining{% endif %}</span>
+      <span class="muted small">Due {{ assignment.due_date|date:"M j, Y, g:i A" }}{% if assignment.is_past_due %} · past due, this will be marked Late{% else %} · {{ assignment.due_date|timeuntil }} remaining{% endif %}</span>
       <div>
         <a class="btn-outline" href="{% url 'assignments:assignment_detail' assignment.pk %}">Cancel</a>
         <button type="submit" class="btn-primary">{% if submission %}Resubmit{% else %}Submit{% endif %}</button>

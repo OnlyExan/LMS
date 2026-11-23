@@ -52,11 +52,11 @@
           <td><a class="row-link" href="{% url 'assignments:assignment_detail' assignment.pk %}"><strong>{{ assignment.title }}</strong></a></td>
           <td>
             {{ assignment.due_date|date:"M j, Y, g:i A" }}
-            {% if assignment.due_date|timeuntil %}<div class="muted small">{{ assignment.due_date|timeuntil }} remaining</div>{% endif %}
+            <div class="muted small">{% if assignment.is_past_due %}Past due{% else %}{{ assignment.due_date|timeuntil }} remaining{% endif %}</div>
           </td>
           <td>{{ assignment.points_possible|floatformat:"-2" }}</td>
           {% if user.role == "student" %}
-            <td>{% if assignment.id in submitted_ids %}<span class="status status-on">Submitted</span>{% else %}<span class="status status-muted">Not submitted</span>{% endif %}</td>
+            <td>{% if assignment.id in graded_ids %}<span class="status status-on">Graded</span>{% elif assignment.id in submitted_ids %}<span class="status status-pending">Submitted</span>{% elif assignment.is_past_due %}<span class="status status-off">Missing</span>{% else %}<span class="status status-muted">Not submitted</span>{% endif %}</td>
           {% endif %}
         </tr>
       {% empty %}

@@ -27,7 +27,7 @@
       <div class="actions">
         <a class="btn-outline" href="{% url 'assignments:assignment_edit' assignment.pk %}">Edit assignment</a>
         <form method="post" action="{% url 'assignments:assignment_delete' assignment.pk %}"
-              onsubmit="return confirm('Delete {{ assignment.title }}? All submissions and grades for it will be deleted.');">
+              onsubmit="return confirm('Delete {{ assignment.title|escapejs }}? All submissions and grades for it will be deleted.');">
           {% csrf_token %}
           <button class="btn-danger" type="submit">Delete assignment</button>
         </form>
@@ -36,9 +36,9 @@
   </header>
 
   {% if assignment.description %}
-    <section class="form-card">
+    <section class="form-card asg-instructions">
       <h2 class="card-title">Instructions</h2>
-      <div>{{ assignment.description|linebreaks }}</div>
+      <div class="asg-body">{{ assignment.description|linebreaks }}</div>
     </section>
   {% endif %}
 
@@ -82,7 +82,7 @@
         <p class="muted">You have not submitted this assignment yet.</p>
         {% if can_submit %}
           <div class="form-foot">
-            <span class="muted small">{{ assignment.due_date|timeuntil }} remaining</span>
+            <span class="muted small">{% if assignment.is_past_due %}Past due · late submissions are marked Late{% else %}{{ assignment.due_date|timeuntil }} remaining{% endif %}</span>
             <a class="btn-primary" href="{% url 'assignments:submit' assignment.pk %}">Submit assignment</a>
           </div>
         {% endif %}
@@ -93,7 +93,7 @@
       <h2 class="section-title">Submission history</h2>
       <ul class="activity-list">
         {% for version in versions %}
-          <li class="activity-item">
+          <li class="activity-item version-item">
             <strong>Version {{ version.number }}</strong>
             <span class="muted small">{{ version.submitted_at|date:"M j, Y, g:i A" }}</span>
             {% if version.is_late %}<span class="status status-late">Late</span>{% endif %}

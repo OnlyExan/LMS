@@ -284,3 +284,34 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .asg-groups select { height: 34px; padding: 0 0.5rem; border: 1px solid #d1d5db; border-radius: 7px; font: inherit; font-size: 0.88rem; background: #fff; min-width: 12rem; }
 .weights-card { margin-bottom: 0.25rem; }
 .gradebook tfoot th.gb-student { white-space: nowrap; }
+
+/* assignment page: space under the header, tidy instructions card */
+.dash > .dash-header + .form-card, .dash > .dash-header + h2.section-title { margin-top: 1.25rem; }
+.asg-instructions { gap: 0.6rem; }
+.asg-instructions .card-title { margin: 0; }
+.asg-body > :first-child { margin-top: 0; }
+.asg-body > :last-child { margin-bottom: 0; }
+
+/* version history: label · date · badge on one line, the response underneath */
+.version-item { flex-wrap: wrap; align-items: baseline; row-gap: 0.25rem; }
+.version-item > p { flex-basis: 100%; margin: 0; color: #374151; }
+.version-item > a { flex-basis: 100%; font-size: 0.85rem; }
+
+/* users table: keep the action buttons inside the card */
+.users-table th, .users-table td { padding-left: 0.7rem; padding-right: 0.7rem; }
+.users-table .row-actions { gap: 0.35rem; }
+
+/* assignment form: file-type checkboxes match the rest of the form */
+.check-list ul, .check-list > div { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 0.35rem 1rem; }
+.check-list li, .check-list label { font-size: 0.88rem; color: #374151; display: flex; align-items: center; gap: 0.45rem; }
+.check-list input[type="checkbox"] { margin: 0; }
+
+/* gradebook footer: no partial row lines under the sticky name cell */
+.gradebook tfoot th, .gradebook tfoot td { border-bottom: 0; }
+
+/* grade page: space between version history and the grading form */
+.activity-list + .form-card { margin-top: 1.25rem; }
+
+/* assignment list filters: date pickers don't need 260px; wrap instead of overflowing */
+.search { flex-wrap: wrap; justify-content: flex-end; }
+.search input[type="date"] { width: 10.5rem; }

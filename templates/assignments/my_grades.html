@@ -27,7 +27,7 @@
           <tr>
             <td>
               <a class="row-link" href="{% url 'assignments:course_grades' c.course.pk %}">
-                <strong>{{ c.course.code }}</strong> <span class="muted">— {{ c.course.title }}</span>{% if c.course.weighted_grading %} <span class="status status-muted">weighted</span>{% endif %}
+                <strong>{{ c.course.code }}</strong> <span class="muted">— {{ c.course.title }}</span>
               </a>
               {% if c.missing %}<span class="status status-off">{{ c.missing }} missing</span>{% endif %}
             </td>
@@ -39,7 +39,7 @@
         </tbody>
       </table>
     </div>
-    <p class="muted small-note">Grades count graded work only. Courses marked <em>weighted</em> weight each assignment group; open a course to see how.</p>
+    <p class="muted small-note">Grades count graded work only. Open a course to see how it's calculated.</p>
   {% else %}
     <div class="empty-card">
       <p>You're not enrolled in any courses yet.</p>

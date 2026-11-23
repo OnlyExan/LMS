@@ -73,6 +73,12 @@ def accept_invite(request, token):
 
 # ---------- dashboard (root URL) ----------
 
+def _ungraded_by_course(submissions):
+    """{course_id: ungraded count} from an _instructor_submissions() queryset."""
+    return dict(submissions.filter(grade__isnull=True).order_by()
+                .values_list("assignment__course").annotate(n=Count("id")))
+
+
 @school_member_required
 def dashboard(request):
     user, now = request.user, timezone.now()
@@ -84,16 +90,16 @@ def dashboard(request):
         enrollments = list(Enrollment.objects.filter(student=user, status=Enrollment.ACTIVE)
                            .select_related("course", "course__instructor"))
         course_ids = [e.course_id for e in enrollments]
-        # current grade per course = points earned / points possible on graded work
-        totals = {}
+        # current grade per course: same math as the Grades pages (points, or group weights)
+        from courses.grading import course_percent
+        graded = {}
         for g in Grade.objects.filter(submission__student=user, submission__assignment__course_id__in=course_ids) \
                               .select_related("submission__assignment"):
-            earned, possible = totals.get(g.submission.assignment.course_id, (0, 0))
-            totals[g.submission.assignment.course_id] = (earned + g.points_earned,
-                                                         possible + g.submission.assignment.points_possible)
+            a = g.submission.assignment
+            graded.setdefault(a.course_id, []).append((a.group_id, g.points_earned, a.points_possible))
         for e in enrollments:
-            earned, possible = totals.get(e.course_id, (0, 0))
-            e.current_grade = (earned / possible * 100) if possible else None
+            e.current_grade = course_percent(graded.get(e.course_id, []), e.course.grade_weights())
+            e.current_letter = e.course.letter_for(e.current_grade)
         ctx.update(
             enrollments=enrollments,
             # past due in the last 14 days and never submitted
@@ -117,16 +123,17 @@ def dashboard(request):
         from assignments.models import Assignment, Submission
         from courses.models import Course, Enrollment
         # distinct: two joined counts would otherwise multiply each other
-        courses = (Course.objects.filter(school=user.school, instructor=user)
-                   .annotate(student_count=Count("enrollments", distinct=True,
-                                                 filter=Q(enrollments__status="active")),
-                             ungraded=Count("assignments__submissions", distinct=True,
-                                            filter=Q(assignments__submissions__grade__isnull=True)))
-                   .order_by("-term", "code"))
+        from assignments.views import _instructor_submissions
+        courses = list(Course.objects.filter(school=user.school, instructor=user)
+                       .annotate(student_count=Count("enrollments", distinct=True,
+                                                     filter=Q(enrollments__status="active")))
+                       .order_by("-term", "code"))
+        ungraded = _ungraded_by_course(_instructor_submissions(user))
+        for c in courses:
+            c.ungraded = ungraded.get(c.pk, 0)
         ctx.update(
             courses=courses,
-            ungraded_count=Submission.objects.filter(
-                assignment__course__instructor=user, grade__isnull=True).count(),
+            ungraded_count=sum(ungraded.values()),
             student_total=Enrollment.objects.filter(course__in=courses, status=Enrollment.ACTIVE)
                                             .values("student").distinct().count(),
             # due in next 7 days, with how many students turned it in
@@ -287,12 +294,14 @@ def user_detail(request, pk):
             },
         )
     else:
-        ctx["courses"] = (Course.objects.filter(school=target.school, instructor=target)
-                          # distinct: two joined counts would otherwise multiply each other
-                          .annotate(student_count=Count("enrollments", filter=Q(enrollments__status="active"), distinct=True),
-                                    ungraded=Count("assignments__submissions", distinct=True,
-                                                   filter=Q(assignments__submissions__grade__isnull=True)))
-                          .order_by("-term", "code"))
+        from assignments.views import _instructor_submissions
+        courses = list(Course.objects.filter(school=target.school, instructor=target)
+                       .annotate(student_count=Count("enrollments", filter=Q(enrollments__status="active"), distinct=True))
+                       .order_by("-term", "code"))
+        ungraded = _ungraded_by_course(_instructor_submissions(target))
+        for c in courses:
+            c.ungraded = ungraded.get(c.pk, 0)
+        ctx["courses"] = courses
     return render(request, "accounts/user_detail.html", ctx)
 
 

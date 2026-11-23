@@ -38,7 +38,7 @@
   <h2 class="section-title">Version history</h2>
   <ul class="activity-list">
     {% for v in versions %}
-      <li class="activity-item">
+      <li class="activity-item version-item">
         <strong>v{{ v.number }}</strong>
         <span class="muted small">{{ v.submitted_at|date:"M j, g:i A" }}</span>
         {% if v.is_late %}<span class="status status-off">Late</span>{% endif %}

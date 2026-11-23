@@ -71,7 +71,7 @@
         <div class="course-meta">
           <span>Current grade</span>
           {% if e.current_grade is not None %}
-            <span class="grade-pill {% if e.current_grade >= 90 %}g-a{% elif e.current_grade >= 70 %}g-b{% else %}g-c{% endif %}">{{ e.current_grade|floatformat:1 }}%</span>
+            <span class="grade-pill {% if e.current_grade >= 90 %}g-a{% elif e.current_grade >= 70 %}g-b{% else %}g-c{% endif %}">{{ e.current_grade|floatformat:1 }}% · {{ e.current_letter }}</span>
           {% else %}
             <span class="muted">No grades yet</span>
           {% endif %}

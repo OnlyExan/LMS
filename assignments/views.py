@@ -4,7 +4,7 @@ from decimal import Decimal, InvalidOperation
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
-from django.db.models import Count, Q
+from django.db.models import Count, Exists, OuterRef, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -61,11 +61,13 @@ def assignment_list(request):
     if request.GET.get("upcoming") == "1":
         qs = qs.filter(due_date__gte=timezone.now())
 
-    submitted_ids = set(Submission.objects.filter(student=user)
-                        .values_list("assignment_id", flat=True))
+    mine = Submission.objects.filter(student=user)
+    submitted_ids = set(mine.values_list("assignment_id", flat=True))
+    graded_ids = set(mine.filter(grade__isnull=False).values_list("assignment_id", flat=True))
     return render(request, "assignments/assignment_list.html", {
         "assignments": qs.distinct().order_by("due_date"),
         "submitted_ids": submitted_ids,
+        "graded_ids": graded_ids,
         "courses": school_courses(user).filter(
             pk__in=visible_assignments(user).values("course_id")),
         "filters": {"course": course_id, "q": q,
@@ -164,7 +166,11 @@ def submit(request, pk):
 # ---------- grading ----------
 
 def _instructor_submissions(user):
+    # only students still enrolled (dropped students are hidden from the gradebook too)
+    active = Enrollment.objects.filter(course=OuterRef("assignment__course"), student=OuterRef("student"),
+                                       status=Enrollment.ACTIVE)
     qs = (Submission.objects.filter(assignment__course__school=user.school)
+          .filter(Exists(active))
           .select_related("student", "assignment__course", "grade"))
     if user.role != User.ADMIN:
         qs = qs.filter(assignment__course__instructor=user)

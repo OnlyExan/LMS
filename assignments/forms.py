@@ -28,6 +28,7 @@ class AssignmentForm(forms.ModelForm):
         self.fields["group"].queryset = course.assignment_groups.all() if course else \
             AssignmentGroup.objects.none()
         self.fields["group"].initial = self.instance.group_id
+        self.fields["group"].label_from_instance = lambda g: f"{g.name} ({g.weight.normalize():f}%)"
         saved = self.instance.allowed_file_types if self.instance.pk else DEFAULT_FILE_TYPES
         self.fields["text_only"].initial = not saved
         self.fields["file_types"].initial = saved or DEFAULT_FILE_TYPES

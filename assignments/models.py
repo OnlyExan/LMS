@@ -25,6 +25,10 @@ class Assignment(models.Model):
     def __str__(self):
         return f"{self.course.code}: {self.title}"
 
+    @property
+    def is_past_due(self):
+        return timezone.now() > self.due_date
+
     def save(self, *args, **kwargs):
         if self.group_id and self.group.course_id != self.course_id:
             self.group = None  # never point at another course's group
