@@ -17,7 +17,7 @@
     </div>
     <div class="grade-summary">
       <span class="grade-big">{% if score.percent is not None %}<span class="grade-cell"><span>{{ score.percent|floatformat:1 }}%</span><span class="letter-pill letter-big">{{ letter }}</span></span>{% else %}—{% endif %}</span>
-      {% if score.graded %}<span class="muted">{{ score.earned|floatformat:"-2" }} / {{ score.possible|floatformat:"-2" }} pts</span>{% endif %}
+      {% if score.graded %}<span class="muted">{% if course.weighted_grading %}weighted by group{% else %}{{ score.earned|floatformat:"-2" }} / {{ score.possible|floatformat:"-2" }} pts{% endif %}</span>{% endif %}
     </div>
   </header>
 
@@ -25,12 +25,13 @@
     <div class="table-card">
       <table class="data-table">
         <thead>
-          <tr><th>Assignment</th><th>Due</th><th>Status</th><th>Score</th><th>Feedback</th></tr>
+          <tr><th>Assignment</th>{% if course.weighted_grading %}<th>Group</th>{% endif %}<th>Due</th><th>Status</th><th>Score</th><th>Feedback</th></tr>
         </thead>
         <tbody>
         {% for r in rows %}
           <tr>
             <td><strong>{{ r.assignment.title }}</strong></td>
+            {% if course.weighted_grading %}<td>{% if r.assignment.group %}{{ r.assignment.group.name }}{% else %}<span class="muted">—</span>{% endif %}</td>{% endif %}
             <td>{{ r.assignment.due_date|date:"M j, g:i A" }}</td>
             <td>
               {% if r.status == "graded" %}<span class="status status-on">Graded</span>
@@ -52,6 +53,26 @@
     </div>
   {% else %}
     <div class="empty-card"><p>No assignments in this course yet.</p></div>
+  {% endif %}
+
+  {% if course.weighted_grading %}
+  <h2 class="section-title">How your grade is weighted</h2>
+  <div class="table-card weights-card">
+    <table class="data-table">
+      <thead><tr><th>Group</th><th class="num">Weight</th><th class="num">Points</th><th class="num">Score</th></tr></thead>
+      <tbody>
+      {% for b in breakdown %}
+        <tr>
+          <td><strong>{{ b.group.name }}</strong></td>
+          <td class="num">{{ b.group.weight|floatformat:"-2" }}%</td>
+          <td class="num">{% if b.possible %}{{ b.earned|floatformat:"-2" }} / {{ b.possible|floatformat:"-2" }}{% else %}<span class="muted">—</span>{% endif %}</td>
+          <td class="num">{% if b.percent is not None %}<strong>{{ b.percent|floatformat:1 }}%</strong>{% else %}<span class="muted">nothing graded yet</span>{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="muted small-note">Your grade = each group's score × its weight. Groups with nothing graded yet are left out and the rest are scaled to 100%.{% if ungrouped %} Assignments with no group don't count.{% endif %}</p>
   {% endif %}
 
   <h2 class="section-title">Grading scale</h2>

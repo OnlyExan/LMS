@@ -15,7 +15,8 @@
     <header class="dash-header">
       <div>
         <h1>Gradebook</h1>
-        <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only · <a class="link-muted" href="{% url 'courses:course_edit' course.pk %}" title="Change in course settings">{% if course.uses_custom_scale %}custom{% else %}default{% endif %} letter scale</a></p>
+        <p class="muted">{{ course.code }} — {{ course.title }} · {{ total_possible|floatformat:"-2" }} pts possible · % counts graded work only · <a class="link-muted" href="{% url 'courses:course_edit' course.pk %}" title="Change in course settings">{% if course.uses_custom_scale %}custom{% else %}default{% endif %} letter scale</a>{% if course.weighted_grading %} · <a class="link-muted" href="{% url 'courses:course_edit' course.pk %}">weighted by group</a>{% endif %}</p>
+        {% if ungrouped %}<p class="gb-warn">{{ ungrouped|length }} assignment{{ ungrouped|length|pluralize }} not in a group ({% for a in ungrouped %}{{ a.title }}{% if not forloop.last %}, {% endif %}{% endfor %}) {{ ungrouped|length|pluralize:"doesn't,don't" }} count toward the grade. <a href="{% url 'courses:course_edit' course.pk %}">Fix in course settings</a></p>{% endif %}
       </div>
       {% if rows %}
       <div class="gb-actions">
@@ -35,9 +36,9 @@
           <tr>
             <th class="gb-student">Student</th>
             {% for a in assignments %}
-              <th title="{{ a.title }} · due {{ a.due_date|date:'M j, g:i A' }}">{{ a.title }}<span class="gb-pts">out of {{ a.points_possible|floatformat:"-2" }}</span></th>
+              <th title="{{ a.title }} · due {{ a.due_date|date:'M j, g:i A' }}">{{ a.title }}<span class="gb-pts">out of {{ a.points_possible|floatformat:"-2" }}{% if course.weighted_grading %} · {{ a.group.name|default:"no group" }}{% endif %}</span></th>
             {% endfor %}
-            <th class="gb-num gb-earned" title="Points earned / points possible on graded work">Earned</th>
+            <th class="gb-num gb-earned" title="Points earned / points possible on graded work">{% if course.weighted_grading %}Points{% else %}Earned{% endif %}</th>
             <th class="gb-num gb-pct" title="Grade so far: graded work only">%</th>
           </tr>
         </thead>
@@ -119,7 +120,7 @@
   </form>
 </section>
 
-{{ scale|json_script:"gbScale" }}
+{{ grade_js|json_script:"gbGrading" }}
 <script>
 (() => {
   const form = document.getElementById("gbForm");
@@ -131,7 +132,8 @@
 
   const num = v => (v.trim() === "" || isNaN(Number(v))) ? null : Number(v);
   const fmt = n => String(parseFloat(n.toFixed(2)));
-  const scale = JSON.parse(document.getElementById("gbScale").textContent);
+  const grading = JSON.parse(document.getElementById("gbGrading").textContent);
+  const scale = grading.scale;
   // same rule as the server: % rounded to 1 decimal, highest letter it reaches
   const letter = p => { if (p === null) return ""; const r = Math.round(p * 10) / 10;
     for (const [l, m] of scale) if (r >= m) return l; return scale[scale.length - 1][0]; };
@@ -140,13 +142,26 @@
   // live Earned / % per row: graded (or typed) cells only, same rule as the server
   function retotal(tr) {
     let earned = 0, possible = 0;
+    const byGroup = {};  // group id -> [earned, possible]
     tr.querySelectorAll(".gb-input").forEach(i => {
       const v = num(i.value);
-      if (v !== null) { earned += v; possible += Number(i.dataset.possible); }
+      if (v === null) return;
+      earned += v; possible += Number(i.dataset.possible);
+      const g = grading.groups[Number(i.dataset.col)];
+      byGroup[g] = byGroup[g] || [0, 0];
+      byGroup[g][0] += v; byGroup[g][1] += Number(i.dataset.possible);
     });
     tr.querySelector(".gb-earned-val").textContent = fmt(earned);
     tr.querySelector(".gb-possible-val").textContent = fmt(possible);
-    const pct = possible ? earned / possible * 100 : null;
+    let pct = possible ? earned / possible * 100 : null;
+    if (grading.weights) {  // same as courses/grading.py: skip empty / 0-weight groups, rescale the rest
+      let sum = 0, total = 0;
+      for (const [g, [e, p]] of Object.entries(byGroup)) {
+        const w = grading.weights[g] || 0;
+        if (p && w) { sum += w * e / p * 100; total += w; }
+      }
+      pct = total ? sum / total : null;
+    }
     tr.dataset.pct = pct === null ? "" : pct;
     tr.querySelector(".gb-pct-val").textContent = pct === null ? "—" : pct.toFixed(1) + "%";
     tr.querySelector(".gb-letter").textContent = letter(pct);

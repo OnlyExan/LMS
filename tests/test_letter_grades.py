@@ -123,3 +123,12 @@ class LetterGradePagesTests(LMSTestCase):
             "scale_mode": "custom", "scale_letter": ["H", "P", "F"], "scale_min": ["90", "60", "0"]})
         c.refresh_from_db()
         self.assertEqual(c.grading_scale, [["H", 90], ["P", 60], ["F", 0]])
+
+
+class CourseFormTemplateTests(SimpleTestCase):
+    def test_scripts_only_in_content_block(self):
+        with open("templates/courses/course_form.html", encoding="utf-8") as f:
+            src = f.read()
+        head = src[:src.index("{% block content %}")]
+        self.assertNotIn("<script", head)  # title / extra_head stay clean
+        self.assertEqual(src.count("<script"), 1)

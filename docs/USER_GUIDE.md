@@ -126,6 +126,14 @@ Each course turns its % into a letter. Change it under **Edit** on the course pa
 - **Default**: A 90 · B 80 · C 70 · D 60 · F below 60.
 - **Custom**: set your own letters and the % each one starts at. **Use +/–** fills in A/A-/B+… and **Use A–F** resets to the default; edit, add or remove rows from there. The lowest letter must start at 0. Letters can be up to 3 characters (e.g. **P** / **NP** for pass/no pass).
 
+### Assignment weights
+By default the grade is **total points**: points earned ÷ points possible, so a 200-point project counts four times as much as a 50-point homework. To weight by category instead (like Homework 15%, Final 25%), go to **Edit** on the course page → **Assignment weights**:
+1. Tick **Weight final grade by assignment group**.
+2. Add a group for each category with its weight. The weights must add up to 100 (the **Total** turns red until they do).
+3. Under **Put each assignment in a group**, pick a group for every assignment, then save.
+
+The grade becomes each group's % (points earned ÷ possible within the group) × its weight. Groups with nothing graded yet are left out and the rest are scaled up to 100%, so early in the term the grade isn't dragged down by work that hasn't happened. An assignment with **No group** doesn't count; the gradebook shows a yellow warning listing them. Students see each assignment's group and a **How your grade is weighted** table on their course grades page. Untick the box to go back to total points; the groups are kept for later.
+
 A student gets the highest letter their % reaches, using the % as shown (rounded to 1 decimal), so 89.96% shows as 90.0% and gets the A. Students see their letter on the **Grades** tab and the scale on each course's grades page.
 
 ## School admins

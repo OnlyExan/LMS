@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
-from courses.models import Course
+from courses.models import AssignmentGroup, Course
 
 from .filetypes import default_file_types, extensions_for
 
@@ -15,12 +15,20 @@ class Assignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # LSM-100: keys from filetypes.FILE_TYPES; empty list = text response only
     allowed_file_types = models.JSONField(default=default_file_types, blank=True)
+    # weighted grading bucket; must be a group of the same course (deleting the group just ungroups)
+    group = models.ForeignKey(AssignmentGroup, null=True, blank=True, on_delete=models.SET_NULL,
+                              related_name="assignments")
 
     class Meta:
         ordering = ["due_date"]
 
     def __str__(self):
         return f"{self.course.code}: {self.title}"
+
+    def save(self, *args, **kwargs):
+        if self.group_id and self.group.course_id != self.course_id:
+            self.group = None  # never point at another course's group
+        super().save(*args, **kwargs)
 
     @property
     def allowed_extensions(self):

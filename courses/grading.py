@@ -20,3 +20,39 @@ def letter_for(scale, percent):
 def fmt_min(n):
     """90 -> '90', 87.5 -> '87.5' (for forms and the scale table)."""
     return f"{Decimal(str(n)).normalize():f}"
+
+
+def course_percent(graded, weights=None):
+    """Course % from graded work: [(group_id, earned, possible), ...].
+
+    weights=None -> total points (earned / possible).
+    weights={group_id: weight} -> each group's % x its weight. Groups with nothing graded
+    (or weight 0) are skipped and the rest scaled to fill 100%, like Canvas. Ungrouped work
+    doesn't count when weighting is on.
+    """
+    if weights is None:
+        possible = sum((p for _, _, p in graded), Decimal(0))
+        earned = sum((e for _, e, _ in graded), Decimal(0))
+        return earned / possible * 100 if possible else None
+    sums = {}
+    for gid, e, p in graded:
+        if gid in weights:
+            se, sp = sums.get(gid, (Decimal(0), Decimal(0)))
+            sums[gid] = (se + e, sp + p)
+    used = {g: Decimal(weights[g]) for g, (_, p) in sums.items() if p and weights[g]}
+    total = sum(used.values(), Decimal(0))
+    if not total:
+        return None
+    return sum(used[g] * sums[g][0] / sums[g][1] * 100 for g in used) / total
+
+
+def group_breakdown(groups, graded):
+    """Per-group rows for display: [{group, earned, possible, percent}]."""
+    rows = []
+    for g in groups:
+        mine = [(e, p) for gid, e, p in graded if gid == g.pk]
+        earned = sum((e for e, _ in mine), Decimal(0))
+        possible = sum((p for _, p in mine), Decimal(0))
+        rows.append({"group": g, "earned": earned, "possible": possible,
+                     "percent": earned / possible * 100 if possible else None})
+    return rows

@@ -1,5 +1,6 @@
 from django import forms
 from .filetypes import BLOCKED_EXTENSIONS, CHOICES, DEFAULT_FILE_TYPES, FILE_TYPES, extension_of
+from courses.models import AssignmentGroup
 from .models import Assignment, Grade, Submission
 
 MAX_UPLOAD_MB = 10
@@ -18,8 +19,15 @@ class AssignmentForm(forms.ModelForm):
         widgets = {"due_date": forms.DateTimeInput(attrs={"type": "datetime-local"},
                                                    format="%Y-%m-%dT%H:%M")}
 
-    def __init__(self, *args, **kwargs):
+    # weighted grading group; plain field so a form that doesn't show it never clears it
+    group = forms.ModelChoiceField(queryset=None, required=False, empty_label="No group")
+
+    def __init__(self, *args, course=None, **kwargs):
         super().__init__(*args, **kwargs)
+        course = course or (self.instance.course if self.instance.pk else None)
+        self.fields["group"].queryset = course.assignment_groups.all() if course else \
+            AssignmentGroup.objects.none()
+        self.fields["group"].initial = self.instance.group_id
         saved = self.instance.allowed_file_types if self.instance.pk else DEFAULT_FILE_TYPES
         self.fields["text_only"].initial = not saved
         self.fields["file_types"].initial = saved or DEFAULT_FILE_TYPES
@@ -41,6 +49,8 @@ class AssignmentForm(forms.ModelForm):
         picked = set(self.cleaned_data.get("file_types") or [])
         # text-only wins; otherwise keep master-list order so displays are consistent
         a.allowed_file_types = [] if self.cleaned_data.get("text_only") else [k for k in FILE_TYPES if k in picked]
+        if "group" in self.data:  # only when the page has a group picker
+            a.group = self.cleaned_data.get("group")
         if commit:
             a.save()
         return a

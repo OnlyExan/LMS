@@ -11,6 +11,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.decorators import instructor_required, school_member_required, student_required
 from accounts.models import User
+from courses.grading import course_percent, group_breakdown
 from courses.models import Enrollment
 from courses.views import get_managed_course, school_courses
 from .forms import AssignmentForm, GradeForm, SubmissionForm
@@ -76,7 +77,7 @@ def assignment_list(request):
 @instructor_required
 def assignment_create(request, course_pk):
     course = get_managed_course(request, course_pk)
-    form = AssignmentForm(request.POST or None)
+    form = AssignmentForm(request.POST or None, course=course)
     if request.method == "POST" and form.is_valid():
         assignment = form.save(commit=False)
         assignment.course = course
@@ -218,13 +219,19 @@ def grade_submission(request, pk):
                    "versions": submission.versions.all()})
 
 
-def _course_score(rows):
-    """Earned / possible over graded work only (same math as the gradebook)."""
-    graded = [r for r in rows if r["grade"]]
-    earned = sum((r["grade"].points_earned for r in graded), Decimal(0))
-    possible = sum((r["assignment"].points_possible for r in graded), Decimal(0))
-    percent = earned / possible * 100 if possible else None
-    return {"earned": earned, "possible": possible, "percent": percent, "graded": len(graded)}
+def _graded(rows):
+    """(group, earned, possible) for each graded row: input to courses.grading.course_percent."""
+    return [(r["assignment"].group_id, r["grade"].points_earned, r["assignment"].points_possible)
+            for r in rows if r["grade"]]
+
+
+def _course_score(rows, weights):
+    """Graded work only (same math as the gradebook): points, or group weights when on."""
+    graded = _graded(rows)
+    earned = sum((e for _, e, _ in graded), Decimal(0))
+    possible = sum((p for _, _, p in graded), Decimal(0))
+    return {"earned": earned, "possible": possible, "percent": course_percent(graded, weights),
+            "graded": len(graded)}
 
 
 def _student_rows(student, course, now):
@@ -232,7 +239,7 @@ def _student_rows(student, course, now):
     subs = {s.assignment_id: s for s in Submission.objects.filter(student=student, assignment__course=course)
             .select_related("grade")}
     rows = []
-    for a in course.assignments.order_by("due_date"):
+    for a in course.assignments.select_related("group").order_by("due_date"):
         sub = subs.get(a.pk)
         grade = getattr(sub, "grade", None) if sub else None
         if grade:
@@ -259,7 +266,7 @@ def my_grades(request):
     courses = []
     for course in _student_courses(request.user):
         rows = _student_rows(request.user, course, now)
-        score = _course_score(rows)
+        score = _course_score(rows, course.grade_weights())
         courses.append({"course": course, "total": len(rows), **score,
                         "letter": course.letter_for(score["percent"]),
                         "missing": sum(r["status"] == "missing" for r in rows)})
@@ -271,10 +278,14 @@ def course_grades(request, course_pk):
     """One course's grades for the logged-in student."""
     course = get_object_or_404(_student_courses(request.user), pk=course_pk)
     rows = _student_rows(request.user, course, timezone.now())
-    score = _course_score(rows)
+    weights = course.grade_weights()
+    score = _course_score(rows, weights)
+    groups = list(course.assignment_groups.all()) if weights is not None else []
     return render(request, "assignments/course_grades.html",
                   {"course": course, "rows": rows, "score": score,
-                   "letter": course.letter_for(score["percent"])})
+                   "letter": course.letter_for(score["percent"]),
+                   "breakdown": group_breakdown(groups, _graded(rows)),
+                   "ungrouped": weights is not None and any(r["assignment"].group_id is None for r in rows)})
 
 
 def _parse_points(raw, possible):
@@ -295,7 +306,7 @@ def _parse_points(raw, possible):
 @instructor_required
 def gradebook(request, course_pk):
     course = get_managed_course(request, course_pk)
-    assignments = list(course.assignments.order_by("due_date"))
+    assignments = list(course.assignments.select_related("group").order_by("due_date"))
     enrollments = (course.enrollments.filter(status=Enrollment.ACTIVE)
                    .select_related("student").order_by("student__last_name", "student__username"))
     subs = list(Submission.objects.filter(assignment__course=course)
@@ -365,6 +376,7 @@ def gradebook(request, course_pk):
             return redirect("assignments:gradebook", course_pk=course.pk)
 
     total_possible = sum(a.points_possible for a in assignments)
+    weights = course.grade_weights()
     rows = []
     for e in enrollments:
         cells, earned, graded_possible = [], 0, 0
@@ -388,7 +400,9 @@ def gradebook(request, course_pk):
         # ungraded, missing and not-yet-due work don't count yet
         rows.append({"student": e.student, "cells": cells, "earned": earned,
                      "graded_possible": graded_possible,
-                     "percent": (earned / graded_possible * 100) if graded_possible else None})
+                     "percent": course_percent([(c["assignment"].group_id, c["grade"].points_earned,
+                                                 c["assignment"].points_possible)
+                                                for c in cells if c["grade"]], weights)})
         rows[-1]["letter"] = course.letter_for(rows[-1]["percent"])
 
     # class stats per assignment: graded cells of current students only
@@ -404,5 +418,9 @@ def gradebook(request, course_pk):
     return render(request, "assignments/gradebook.html", {
         "course": course, "assignments": assignments, "rows": rows,
         "total_possible": total_possible, "has_errors": bool(errors),
-        "class_stats": class_stats, "scale": course.scale,
+        "class_stats": class_stats,
+        "grade_js": {"scale": course.scale,
+                     "weights": {str(k): float(v) for k, v in weights.items()} if weights is not None else None,
+                     "groups": [str(a.group_id or "") for a in assignments]},
+        "ungrouped": [a for a in assignments if weights is not None and a.group_id is None],
     })

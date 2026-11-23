@@ -1,63 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
-{% block title %}{% if course %}Edit {{ course.code }}{% else %}New course{% endif %}{{ form.preset_json|json_script:"scalePresets" }}
-<script>
-(() => {
-  const box = document.getElementById("scaleCustom"), rows = document.getElementById("scaleRows");
-  const presets = JSON.parse(document.getElementById("scalePresets").textContent);
-  document.querySelectorAll('input[name="scale_mode"]').forEach(r =>
-    r.addEventListener("change", () => { box.hidden = r.value !== "custom" || !r.checked; }));
-
-  function addRow(letter = "", min = "") {
-    const tr = document.createElement("tr");
-    tr.innerHTML = '<td><input type="text" name="scale_letter" maxlength="3" aria-label="Letter"></td>' +
-      '<td><input type="text" name="scale_min" inputmode="decimal" aria-label="Minimum %"></td>' +
-      '<td><button type="button" class="scale-del" title="Remove">✕</button></td>';
-    tr.querySelector('[name="scale_letter"]').value = letter;
-    tr.querySelector('[name="scale_min"]').value = min;
-    rows.appendChild(tr);
-    return tr;
-  }
-  document.getElementById("scaleAdd").addEventListener("click", () => addRow().querySelector("input").focus());
-  rows.addEventListener("click", e => {
-    if (e.target.classList.contains("scale-del") && rows.children.length > 1) e.target.closest("tr").remove();
-  });
-  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
-    rows.innerHTML = "";
-    presets[b.dataset.preset].forEach(([l, m]) => addRow(l, String(m)));
-  }));
-})();
-</script>
-{% endblock %}
-{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{{ form.preset_json|json_script:"scalePresets" }}
-<script>
-(() => {
-  const box = document.getElementById("scaleCustom"), rows = document.getElementById("scaleRows");
-  const presets = JSON.parse(document.getElementById("scalePresets").textContent);
-  document.querySelectorAll('input[name="scale_mode"]').forEach(r =>
-    r.addEventListener("change", () => { box.hidden = r.value !== "custom" || !r.checked; }));
-
-  function addRow(letter = "", min = "") {
-    const tr = document.createElement("tr");
-    tr.innerHTML = '<td><input type="text" name="scale_letter" maxlength="3" aria-label="Letter"></td>' +
-      '<td><input type="text" name="scale_min" inputmode="decimal" aria-label="Minimum %"></td>' +
-      '<td><button type="button" class="scale-del" title="Remove">✕</button></td>';
-    tr.querySelector('[name="scale_letter"]').value = letter;
-    tr.querySelector('[name="scale_min"]').value = min;
-    rows.appendChild(tr);
-    return tr;
-  }
-  document.getElementById("scaleAdd").addEventListener("click", () => addRow().querySelector("input").focus());
-  rows.addEventListener("click", e => {
-    if (e.target.classList.contains("scale-del") && rows.children.length > 1) e.target.closest("tr").remove();
-  });
-  document.querySelectorAll("[data-preset]").forEach(b => b.addEventListener("click", () => {
-    rows.innerHTML = "";
-    presets[b.dataset.preset].forEach(([l, m]) => addRow(l, String(m)));
-  }));
-})();
-</script>
-{% endblock %}
+{% block title %}{% if course %}Edit {{ course.code }}{% else %}New course{% endif %}{% endblock %}
+{% block extra_head %}<link rel="stylesheet" href="{% static 'css/admin.css' %}">{% endblock %}
 
 {% block content %}
 <div class="admin-page narrow">
@@ -147,6 +91,53 @@
       </div>
     </fieldset>
 
+    <fieldset class="scale-box" id="weightsBox">
+      <legend>Assignment weights</legend>
+      <input type="hidden" name="groups_form" value="1">
+      <label class="check"><input type="checkbox" name="weighted_grading" id="weightedToggle" {% if form.weighted_on %}checked{% endif %}>
+        Weight final grade by assignment group</label>
+      <p class="muted small" id="weightsOffNote" {% if form.weighted_on %}hidden{% endif %}>Off: the grade is total points earned ÷ points possible, so bigger assignments count more.</p>
+
+      <div id="weightsOn" {% if not form.weighted_on %}hidden{% endif %}>
+        <table class="scale-table weights-table">
+          <thead><tr><th>Group</th><th>Weight %</th><th></th></tr></thead>
+          <tbody id="groupRows">
+          {% for key, name, weight in form.group_rows %}
+            <tr data-key="{{ key }}">
+              <td><input type="hidden" name="group_key" value="{{ key }}"><input type="text" name="group_name" value="{{ name }}" maxlength="60" aria-label="Group name" placeholder="Homework"></td>
+              <td><input type="text" name="group_weight" value="{{ weight }}" inputmode="decimal" aria-label="Weight %"></td>
+              <td><button type="button" class="scale-del" title="Remove group">✕</button></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+          <tfoot><tr><th>Total</th><th><span id="weightTotal">0</span>%</th><th></th></tr></tfoot>
+        </table>
+        <div class="scale-tools">
+          <button type="button" class="btn-outline btn-sm" id="groupAdd">+ Add group</button>
+        </div>
+
+        {% if form.assignment_rows %}
+          <p class="weights-sub">Put each assignment in a group</p>
+          <table class="scale-table asg-groups">
+            <tbody>
+            {% for a, key in form.assignment_rows %}
+              <tr>
+                <td class="asg-name">{{ a.title }} <span class="muted small">· {{ a.points_possible|floatformat:"-2" }} pts</span></td>
+                <td><select name="asg_group_{{ a.pk }}" class="group-pick" aria-label="Group for {{ a.title }}">
+                  <option value="">No group (doesn't count)</option>
+                  {% for gkey, gname, w in form.group_rows %}<option value="{{ gkey }}" {% if gkey == key %}selected{% endif %}>{{ gname }}</option>{% endfor %}
+                </select></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        {% elif not course %}
+          <p class="muted small">Once the course has assignments, put each one in a group here.</p>
+        {% endif %}
+        <p class="muted small">Grade = each group's % × its weight. Groups with nothing graded yet are left out and the rest scale up to 100%. Weights must add up to 100.</p>
+      </div>
+    </fieldset>
+
     <div class="form-foot">
       <span class="muted small">Code must be unique for each term in your school.</span>
       <div>
@@ -187,6 +178,57 @@
     rows.innerHTML = "";
     presets[b.dataset.preset].forEach(([l, m]) => addRow(l, String(m)));
   }));
+})();
+
+// assignment weights
+(() => {
+  const toggle = document.getElementById("weightedToggle"), on = document.getElementById("weightsOn");
+  const offNote = document.getElementById("weightsOffNote"), rows = document.getElementById("groupRows");
+  const total = document.getElementById("weightTotal");
+  let next = 1;
+  toggle.addEventListener("change", () => { on.hidden = !toggle.checked; offNote.hidden = toggle.checked; });
+
+  // keep every assignment's dropdown in sync with the group rows (names, adds, removes)
+  function syncPicks() {
+    const groups = [...rows.querySelectorAll("tr")].map(tr => [tr.dataset.key, tr.querySelector('[name="group_name"]').value.trim()]);
+    document.querySelectorAll(".group-pick").forEach(sel => {
+      const cur = sel.value;
+      sel.innerHTML = "";
+      sel.add(new Option("No group (doesn't count)", ""));
+      groups.forEach(([k, n]) => sel.add(new Option(n || "(unnamed)", k)));
+      sel.value = groups.some(([k]) => k === cur) ? cur : "";
+    });
+  }
+  function retotal() {
+    let t = 0;
+    rows.querySelectorAll('[name="group_weight"]').forEach(i => { const v = Number(i.value); if (!isNaN(v)) t += v; });
+    total.textContent = String(parseFloat(t.toFixed(2)));
+    total.parentElement.classList.toggle("weight-off", Math.abs(t - 100) > 0.001);
+  }
+  function addGroup() {
+    const key = "new-" + next++;
+    const tr = document.createElement("tr");
+    tr.dataset.key = key;
+    tr.innerHTML = '<td><input type="hidden" name="group_key"><input type="text" name="group_name" maxlength="60" aria-label="Group name" placeholder="Homework"></td>' +
+      '<td><input type="text" name="group_weight" inputmode="decimal" aria-label="Weight %"></td>' +
+      '<td><button type="button" class="scale-del" title="Remove group">✕</button></td>';
+    tr.querySelector('[name="group_key"]').value = key;
+    rows.appendChild(tr);
+    syncPicks(); retotal();
+    return tr;
+  }
+  document.getElementById("groupAdd").addEventListener("click", () => addGroup().querySelector('[name="group_name"]').focus());
+  rows.addEventListener("click", e => {
+    if (e.target.classList.contains("scale-del")) { e.target.closest("tr").remove(); syncPicks(); retotal(); }
+  });
+  rows.addEventListener("input", e => {
+    if (e.target.name === "group_name") syncPicks();
+    if (e.target.name === "group_weight") retotal();
+  });
+  // rows posted back after an error keep their new-N keys; keep numbering after them
+  rows.querySelectorAll("tr").forEach(tr => { const m = /^new-(\d+)$/.exec(tr.dataset.key); if (m) next = Math.max(next, Number(m[1]) + 1); });
+  if (!rows.children.length) addGroup();
+  retotal();
 })();
 </script>
 {% endblock %}

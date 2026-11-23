@@ -16,6 +16,8 @@ class Course(models.Model):
     term = models.CharField(max_length=50)
     # [[letter, min %], ...] highest first, last min is 0; empty = school default (A 90 / B 80 / ...)
     grading_scale = models.JSONField(null=True, blank=True)
+    # on: final % = each assignment group's % x its weight (Canvas-style); off: total points
+    weighted_grading = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     students = models.ManyToManyField(
         settings.AUTH_USER_MODEL, through="Enrollment", related_name="courses"
@@ -46,6 +48,12 @@ class Course(models.Model):
     def uses_custom_scale(self):
         return bool(self.grading_scale)
 
+    def grade_weights(self):
+        """{group_id: weight} when weighted grading is on, else None (total points)."""
+        if not self.weighted_grading:
+            return None
+        return {g.pk: g.weight for g in self.assignment_groups.all()}
+
     def letter_for(self, percent):
         return letter_for(self.scale, percent)
 
@@ -59,6 +67,20 @@ class Course(models.Model):
 
     def __str__(self):
         return f"{self.code} — {self.title}"
+
+
+class AssignmentGroup(models.Model):
+    """Category of assignments (Homework, Exams...) with a weight for the final grade."""
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="assignment_groups")
+    name = models.CharField(max_length=60)
+    weight = models.DecimalField(max_digits=5, decimal_places=2, default=0)  # % of the final grade
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["position", "pk"]
+
+    def __str__(self):
+        return f"{self.course.code}: {self.name} ({self.weight}%)"
 
 
 class Enrollment(models.Model):

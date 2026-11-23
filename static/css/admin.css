@@ -269,3 +269,16 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .grade-cell .letter-pill { margin: 0; min-width: 2.1rem; line-height: 1.5; vertical-align: baseline; }
 .grade-cell .letter-big { min-width: 2.8rem; font-size: 1.15rem; padding: 0.1rem 0.5rem; }
 .grades-overview td { vertical-align: middle; }
+.gb-warn { margin: 0.4rem 0 0; padding: 0.45rem 0.7rem; border-radius: 8px; background: #fef3c7; color: #92400e; font-size: 0.85rem; }
+.gb-warn a { color: inherit; font-weight: 600; }
+
+/* course form: assignment weights */
+.weights-table input[name="group_name"] { width: 14rem; font-weight: 600; }
+.weights-table tfoot th { padding-top: 0.4rem; font-size: 0.85rem; text-transform: none; letter-spacing: 0; color: #111827; }
+.weights-table .weight-off { color: #dc2626; }
+.weights-sub { margin: 0.9rem 0 0; font-size: 0.85rem; font-weight: 600; color: #374151; }
+.asg-groups td { padding: 0.25rem 0.75rem 0.25rem 0; }
+.asg-groups .asg-name { font-size: 0.9rem; color: #111827; min-width: 14rem; }
+.asg-groups select { height: 34px; padding: 0 0.5rem; border: 1px solid #d1d5db; border-radius: 7px; font: inherit; font-size: 0.88rem; background: #fff; min-width: 12rem; }
+.weights-card { margin-bottom: 0.25rem; }
+.gradebook tfoot th.gb-student { white-space: nowrap; }
