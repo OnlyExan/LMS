@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if assignment %}Edit assignment{% else %}New assignment{% endif %}{% endblock %}
+
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-page narrow">
+  <a href="{% if assignment %}{% url 'assignments:assignment_detail' assignment.pk %}{% else %}{% url 'courses:course_detail' course.pk %}{% endif %}" class="back-link">‹ Back to {{ course.code }}</a>
+
+  <div class="admin-header">
+    <div>
+      <h1>{% if assignment %}Edit assignment{% else %}New assignment{% endif %}</h1>
+      <p class="muted">{{ course.code }} · {{ course.title }}</p>
+    </div>
+  </div>
+
+  <form method="post" class="form-card">
+    {% csrf_token %}
+    {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+
+    <label class="field">
+      <span>Title</span>
+      {{ form.title }}
+      {% for error in form.title.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Description</span>
+      {{ form.description }}
+      {% for error in form.description.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Due date</span>
+      {{ form.due_date }}
+      {% for error in form.due_date.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+    </label>
+
+    <label class="field">
+      <span>Points</span>
+      {{ form.points_possible }}
+      {% for error in form.points_possible.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+    </label>
+
+    {% if form.group %}
+      <label class="field">
+        <span>Assignment group</span>
+        {{ form.group }}
+        {% for error in form.group.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+      </label>
+    {% endif %}
+
+    <fieldset class="scale-box">
+      <legend>Submission options</legend>
+      <label class="check">{{ form.text_only }} Text response only</label>
+      <p class="muted small">Or choose which file types students may upload.</p>
+      <div class="check-list">{{ form.file_types }}</div>
+      {% for error in form.file_types.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+    </fieldset>
+
+    <div class="form-foot">
+      <span class="muted small">Students can submit text, a file, or both.</span>
+      <div>
+        <a class="btn-outline" href="{% if assignment %}{% url 'assignments:assignment_detail' assignment.pk %}{% else %}{% url 'courses:course_detail' course.pk %}{% endif %}">Cancel</a>
+        <button type="submit" class="btn-primary">{% if assignment %}Save changes{% else %}Create assignment{% endif %}</button>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
