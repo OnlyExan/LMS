@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 264 tests, all passing (about 30 s).
+**Current result:** 265 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `264 passed, 0 failed, 0 errors, 0 skipped (264 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `265 passed, 0 failed, 0 errors, 0 skipped (265 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -70,7 +70,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_db_security.py` | 2 | Supabase RLS hook runs on Postgres only | Tenant | |
 | `test_nav_badge.py` | 6 | Sidebar ungraded-count badge | FR-4.3, Tenant | LSM-97 |
 | `test_submission_filters.py` | 6 | Grading queue late/on-time + course filters | FR-3.5, FR-4.5 | LSM-92 |
-| `test_gradebook.py` | 22 | Gradebook % and cell labels; bulk grading; scoring missing work; course-page due date colors | FR-3.6, FR-3.7, FR-3.9, Integrity, Tenant | LSM-39, 103 |
+| `test_gradebook.py` | 23 | Gradebook % and cell labels; column headers link to the assignment; bulk grading; scoring missing work; course-page due date colors | FR-3.6, FR-3.7, FR-3.9, Integrity, Tenant | LSM-39, 103 |
 | `test_polish.py` | 4 | Friendly 403/404 pages, no Save button for students' locked profile, seed data never dated in the future | Usability | |
 | `test_security.py` | 8 | Lockout IP can't be spoofed off Vercel, unique emails (case-insensitive), logo must be a real PNG/JPG/WebP/GIF, names JS-escaped in confirm() dialogs | Security | |
 | `test_student_grades.py` | 6 | Grades tab shows each course's %, per-course page lists every assignment with Graded/Submitted/Missing/Upcoming (each name links to the assignment page), other-school and dropped courses 404, instructors blocked | Functional, Security | |
@@ -81,7 +81,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_resubmit_after_grade.py` | 8 | Resubmitting graded work is blocked unless the assignment allows it; allowed resubmits keep the old grade (still counted), show Resubmitted, go back into the queue / badge / dashboard count, keep the original on-time status; saving on the grade page clears the flag, the gradebook only when the score changes; the assignment form saves the checkbox | Functional | |
 | `test_submission_type.py` | 14 | Submission type: file-only hides the text box and needs a file (a resubmit keeps the current one), text-only hides the upload and needs text, text-and/or-file needs one; new assignments default to File upload only, text clears file types, file types required otherwise, old checkbox still works; drop-zone hints; file-only submit end to end; migration keeps existing assignments' behavior; scripts only in the page body; saving school settings with a missing logo file doesn't crash | Functional, Usability | |
 | `test_course_tabs.py` | 7 | Courses page opens on My courses for students and instructors (All for admins), `?mine=0`/`?mine=1` pick a tab, tabs and search keep the mode, empty My courses offers Browse all courses, Browse buttons open All | Usability | |
-| **Total** | **188** | | | |
+| **Total** | **189** | | | |
 
 ### Security tests
 These are the tests that back the security requirements. If one fails, treat it as a blocker.

@@ -186,6 +186,8 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .gradebook th { white-space: normal; vertical-align: bottom; min-width: 7rem; max-width: 10rem; line-height: 1.3;
                text-transform: none; letter-spacing: 0; font-size: 0.8rem; font-weight: 600; color: #374151; }
 .gradebook th.gb-num { min-width: 0; }
+.gb-head-link { color: inherit; text-decoration: none; }
+.gb-head-link:hover { color: var(--brand); text-decoration: underline; }
 .gb-pts { display: block; margin-top: 0.15rem; font-weight: 500; color: #9ca3af; }
 .gradebook td { white-space: nowrap; }
 .gradebook .muted { margin: 0; }  /* .dash .muted adds a top margin */

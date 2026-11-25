@@ -36,7 +36,7 @@
           <tr>
             <th class="gb-student">Student</th>
             {% for a in assignments %}
-              <th title="{{ a.title }} · due {{ a.due_date|date:'M j, g:i A' }}">{{ a.title }}<span class="gb-pts">out of {{ a.points_possible|floatformat:"-2" }}{% if course.weighted_grading %} · {{ a.group.name|default:"no group" }}{% endif %}</span></th>
+              <th title="{{ a.title }} · due {{ a.due_date|date:'M j, g:i A' }}"><a class="gb-head-link" href="{% url 'assignments:assignment_detail' a.pk %}">{{ a.title }}</a><span class="gb-pts">out of {{ a.points_possible|floatformat:"-2" }}{% if course.weighted_grading %} · {{ a.group.name|default:"no group" }}{% endif %}</span></th>
             {% endfor %}
             <th class="gb-num gb-earned" title="Points earned / points possible on graded work">{% if course.weighted_grading %}Points{% else %}Earned{% endif %}</th>
             <th class="gb-num gb-pct" title="Grade so far: graded work only">%</th>

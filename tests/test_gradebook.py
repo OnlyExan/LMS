@@ -179,6 +179,11 @@ class BulkGradingTests(TestCase):
         self.assertIn('id="gbSave"', html)
         self.assertIn("csrfmiddlewaretoken", html)
 
+    def test_column_headers_link_to_assignment(self):
+        self.client.force_login(self.inst)
+        html = self.client.get(self.url()).content.decode()
+        self.assertIn(f'href="{reverse("assignments:assignment_detail", args=[self.hw2.pk])}">', html)
+
 
 @override_settings(PASSWORD_HASHERS=["django.contrib.auth.hashers.MD5PasswordHasher"])
 class MissingWorkGradingTests(TestCase):
