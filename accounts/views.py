@@ -75,7 +75,8 @@ def accept_invite(request, token):
 
 def _ungraded_by_course(submissions):
     """{course_id: ungraded count} from an _instructor_submissions() queryset."""
-    return dict(submissions.filter(grade__isnull=True).order_by()
+    from assignments.models import needs_grading_q
+    return dict(submissions.filter(needs_grading_q()).order_by()
                 .values_list("assignment__course").annotate(n=Count("id")))
 
 

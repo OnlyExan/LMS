@@ -325,3 +325,4 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 
 /* scale chips on the course grades page: letter in its color */
 .scale-chip .scale-letter { padding: 0 0.3rem; border-radius: 4px; }
+.gb-warn + .form-card { margin-top: 0.75rem; }

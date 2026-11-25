@@ -15,7 +15,8 @@ class AssignmentForm(forms.ModelForm):
 
     class Meta:
         model = Assignment
-        fields = ("title", "description", "due_date", "points_possible")
+        fields = ("title", "description", "due_date", "points_possible", "allow_resubmit")
+        labels = {"allow_resubmit": "Allow resubmission after grading"}
         widgets = {"due_date": forms.DateTimeInput(attrs={"type": "datetime-local"},
                                                    format="%Y-%m-%dT%H:%M")}
 

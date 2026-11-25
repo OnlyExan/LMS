@@ -65,7 +65,9 @@
         {% if grade %}
           <div>
             <p class="muted small">Grade</p>
-            <p><strong>{{ grade.points_earned|floatformat:"-2" }} / {{ assignment.points_possible|floatformat:"-2" }}</strong> ({{ grade.percentage|floatformat:1 }}%)</p>
+            <p><strong>{{ grade.points_earned|floatformat:"-2" }} / {{ assignment.points_possible|floatformat:"-2" }}</strong> ({{ grade.percentage|floatformat:1 }}%)
+              {% if submission.needs_regrade %}<span class="status status-pending" title="Resubmitted after grading; the old grade counts until it is regraded">Resubmitted</span>{% endif %}</p>
+            {% if submission.needs_regrade %}<p class="muted small">You resubmitted after this was graded. This grade counts until your instructor regrades it.</p>{% endif %}
             {% if grade.feedback %}<p>{{ grade.feedback|linebreaksbr }}</p>{% endif %}
           </div>
         {% elif can_submit %}
@@ -74,7 +76,7 @@
 
         {% if can_submit %}
           <div class="form-foot">
-            <span class="muted small">You can replace your submission until it is graded.</span>
+            <span class="muted small">{% if grade %}Your instructor allows resubmitting after grading. Your grade stays until it's regraded.{% elif assignment.allow_resubmit %}You can replace your submission any time, even after it's graded.{% else %}You can replace your submission until it is graded.{% endif %}</span>
             <a class="btn-primary" href="{% url 'assignments:submit' assignment.pk %}">Resubmit</a>
           </div>
         {% endif %}

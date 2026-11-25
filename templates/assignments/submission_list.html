@@ -60,6 +60,7 @@
           <td>
             {{ s.assignment.title }}
             {% if s.is_late %}<span class="status status-off">Late</span>{% endif %}
+            {% if s.needs_regrade %}<span class="status status-pending" title="Resubmitted after grading; the old grade counts until it is regraded">Resubmitted</span>{% endif %}
           </td>
           <td>{{ s.assignment.course.code }}</td>
           <td class="muted small">{{ s.submitted_at|date:"M j, g:i A" }}</td>

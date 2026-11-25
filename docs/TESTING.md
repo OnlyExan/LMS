@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 233 tests, all passing (about 30 s).
+**Current result:** 241 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `233 passed, 0 failed, 0 errors, 0 skipped (233 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `241 passed, 0 failed, 0 errors, 0 skipped (241 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -78,6 +78,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_weighted_grades.py` | 16 | Weighted grade math (empty and 0-weight groups skipped and rescaled, ungrouped ignored), creating/renaming/removing groups and putting assignments in them, weights must total 100, bad rows rejected, another course's group can't be used or edited, pages without the weights section never wipe groups, gradebook and student pages use the weights, ungrouped warning, turning it off goes back to points | Functional, Security | |
 | `test_review_fixes.py` | 10 | Assignment delete pop-up escapes the title, no "0 minutes remaining" on past-due work, `is_past_due`, Graded status on the assignment list, dropped students leave the grading queue / badge / dashboard counts (and come back if re-enrolled), student dashboard uses weights + letter, group dropdown label, resubmit uses a plain file picker (no Clear checkbox) and keeps the file when left empty | Security, Functional, Usability | |
 | `test_letter_colors.py` | 4 | Letter colors: A green, B blue, C yellow, D/F red, others gray (+/– keep their letter's color), template filters, gradebook JS uses the same map | Usability | |
+| `test_resubmit_after_grade.py` | 8 | Resubmitting graded work is blocked unless the assignment allows it; allowed resubmits keep the old grade (still counted), show Resubmitted, go back into the queue / badge / dashboard count, keep the original on-time status; saving on the grade page clears the flag, the gradebook only when the score changes; the assignment form saves the checkbox | Functional | |
 | **Total** | **180** | | | |
 
 ### Security tests

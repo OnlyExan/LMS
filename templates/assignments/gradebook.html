@@ -57,6 +57,7 @@
                            placeholder="–" aria-label="{{ row.student.get_full_name|default:row.student.username }}, {{ cell.assignment.title }}">
                     {% if cell.submission.is_empty %}<span class="status status-off" title="Never turned in; graded from the gradebook">Missing</span>
                     {% elif cell.submission.is_late %}<span class="status status-off">Late</span>{% endif %}
+                    {% if cell.submission.needs_regrade %}<span class="status status-pending" title="Resubmitted after grading: type a new score here, or open ↗ and save to regrade">Resubmitted</span>{% endif %}
                     <a href="{% url 'assignments:grade_submission' cell.submission.pk %}" class="gb-open" title="Open submission (feedback, files, versions)">↗</a>
                   </span>
                   {% if cell.error %}<span class="gb-err-msg">{{ cell.error }}</span>{% endif %}

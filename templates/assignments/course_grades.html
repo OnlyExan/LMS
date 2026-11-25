@@ -34,7 +34,8 @@
             {% if course.weighted_grading %}<td>{% if r.assignment.group %}{{ r.assignment.group.name }}{% else %}<span class="muted">—</span>{% endif %}</td>{% endif %}
             <td>{{ r.assignment.due_date|date:"M j, g:i A" }}</td>
             <td>
-              {% if r.status == "graded" %}<span class="status status-on">Graded</span>
+              {% if r.status == "resubmitted" %}<span class="status status-pending" title="Resubmitted after grading; the old grade counts until it is regraded">Resubmitted</span>
+              {% elif r.status == "graded" %}<span class="status status-on">Graded</span>
               {% elif r.status == "submitted" %}<span class="status status-pending">Submitted</span>
               {% elif r.status == "missing" %}<span class="status status-off">Missing</span>
               {% else %}<span class="status status-muted">Upcoming</span>{% endif %}

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from django.db.models import F, Q
 from django.utils import timezone
 from courses.models import AssignmentGroup, Course
 
@@ -15,6 +16,8 @@ class Assignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # LSM-100: keys from filetypes.FILE_TYPES; empty list = text response only
     allowed_file_types = models.JSONField(default=default_file_types, blank=True)
+    # students may resubmit after their work is graded (old grade stays until regraded)
+    allow_resubmit = models.BooleanField(default=False)
     # weighted grading bucket; must be a group of the same course (deleting the group just ungroups)
     group = models.ForeignKey(AssignmentGroup, null=True, blank=True, on_delete=models.SET_NULL,
                               related_name="assignments")
@@ -63,9 +66,10 @@ class Submission(models.Model):
     class Meta:
         unique_together = ("assignment", "student")
 
-    def save(self, *args, record_version=True, **kwargs):
-        # recomputed on every (re)submit
-        self.is_late = timezone.now() > self.assignment.due_date
+    def save(self, *args, record_version=True, keep_late=False, **kwargs):
+        # recomputed on every (re)submit; keep_late: a resubmit after grading keeps the original on-time status
+        if not keep_late:
+            self.is_late = timezone.now() > self.assignment.due_date
         super().save(*args, **kwargs)
         if not record_version:  # gradebook placeholder for missing work: nothing to snapshot
             return
@@ -77,6 +81,12 @@ class Submission(models.Model):
             file_upload=self.file_upload.name or None,
             is_late=self.is_late,
         )
+
+    @property
+    def needs_regrade(self):
+        """Graded, then resubmitted (allowed by Assignment.allow_resubmit): old grade stands until regraded."""
+        grade = getattr(self, "grade", None)
+        return bool(grade and self.submitted_at > grade.graded_at)
 
     @property
     def file_name(self):
@@ -128,3 +138,8 @@ class SubmissionVersion(models.Model):
 
     def __str__(self):
         return f"{self.submission} v{self.number}"
+
+
+def needs_grading_q():
+    """Submissions an instructor still has to grade: never graded, or resubmitted after grading."""
+    return Q(grade__isnull=True) | Q(submitted_at__gt=F("grade__graded_at"))

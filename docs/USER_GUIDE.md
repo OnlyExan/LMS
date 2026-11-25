@@ -121,6 +121,14 @@ You can grade straight from the gradebook, like a spreadsheet:
 - Each student's **%** has a **letter grade** next to it.
 - The **Class average**, **High** and **Low** rows at the bottom show each assignment's stats, plus the class's average %. They only count graded cells of students still enrolled, and they update as you type.
 
+### Resubmission after grading
+By default students can replace a submission only until it's graded. To let them resubmit graded work, tick **Allow resubmission after grading** on the assignment's create/edit page. Then:
+- The student sees **Resubmit** on graded work. Their current grade stays (and keeps counting) until you regrade.
+- The resubmission goes back into the grading queue and the sidebar badge, tagged **Resubmitted** there, in the gradebook and on the student's pages.
+- If the first submission was on time, a resubmission after the due date is **not** marked Late.
+- To regrade: save on the grade page (↗), even with the same score, or type a new score in the gradebook. Saving the gradebook without touching that cell leaves it flagged, so it can't be cleared by accident.
+- Every version is kept in the submission history.
+
 ### Letter grades
 Each course turns its % into a letter. Change it under **Edit** on the course page → **Letter grades**:
 - **Default**: A 90 · B 80 · C 70 · D 60 · F below 60.

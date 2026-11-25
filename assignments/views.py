@@ -15,7 +15,7 @@ from courses.grading import course_percent, group_breakdown
 from courses.models import Enrollment
 from courses.views import get_managed_course, school_courses
 from .forms import AssignmentForm, GradeForm, SubmissionForm
-from .models import Assignment, Grade, Submission
+from .models import Assignment, Grade, Submission, needs_grading_q
 
 
 def school_assignments(user):
@@ -63,11 +63,14 @@ def assignment_list(request):
 
     mine = Submission.objects.filter(student=user)
     submitted_ids = set(mine.values_list("assignment_id", flat=True))
-    graded_ids = set(mine.filter(grade__isnull=False).values_list("assignment_id", flat=True))
+    regrade_ids = set(mine.filter(grade__isnull=False).filter(needs_grading_q())
+                      .values_list("assignment_id", flat=True))
+    graded_ids = set(mine.filter(grade__isnull=False).values_list("assignment_id", flat=True)) - regrade_ids
     return render(request, "assignments/assignment_list.html", {
         "assignments": qs.distinct().order_by("due_date"),
         "submitted_ids": submitted_ids,
         "graded_ids": graded_ids,
+        "regrade_ids": regrade_ids,
         "courses": school_courses(user).filter(
             pk__in=visible_assignments(user).values("course_id")),
         "filters": {"course": course_id, "q": q,
@@ -119,6 +122,11 @@ def assignment_delete(request, pk):
     return redirect("courses:course_detail", pk=course_pk)
 
 
+def _can_submit(assignment, submission):
+    """Students can (re)submit until graded, or any time if the assignment allows resubmission."""
+    return not (submission and hasattr(submission, "grade")) or assignment.allow_resubmit
+
+
 @school_member_required
 def assignment_detail(request, pk):
     user = request.user
@@ -131,13 +139,13 @@ def assignment_detail(request, pk):
         ctx.update(submission=submission,
                    versions=submission.versions.all() if submission else [],
                    grade=getattr(submission, "grade", None) if submission else None,
-                   can_submit=not (submission and hasattr(submission, "grade")))
+                   can_submit=_can_submit(assignment, submission))
     else:
         subs = assignment.submissions.select_related("student", "grade")
         ctx.update(
             submissions=subs.order_by("student__last_name", "student__username"),
             submission_count=subs.count(),
-            ungraded_count=subs.filter(grade__isnull=True).count(),
+            ungraded_count=subs.filter(needs_grading_q()).count(),
             enrolled_count=assignment.course.enrollments.filter(
                 status=Enrollment.ACTIVE).count(),
         )
@@ -148,15 +156,16 @@ def assignment_detail(request, pk):
 def submit(request, pk):
     assignment = get_object_or_404(visible_assignments(request.user).distinct(), pk=pk)
     existing = Submission.objects.filter(assignment=assignment, student=request.user).first()
-    if existing and hasattr(existing, "grade"):
+    if not _can_submit(assignment, existing):
         messages.error(request, "This submission is already graded.")
         return redirect("assignments:assignment_detail", pk=pk)
+    regrade = bool(existing and hasattr(existing, "grade"))  # allowed resubmit after grading
     form = SubmissionForm(request.POST or None, request.FILES or None, instance=existing,
                           assignment=assignment)
     if request.method == "POST" and form.is_valid():
         sub = form.save(commit=False)
         sub.assignment, sub.student = assignment, request.user
-        sub.save()
+        sub.save(keep_late=regrade)  # after grading: keep the original on-time status
         messages.success(request, "Submitted late." if sub.is_late else "Submitted.")
         return redirect("assignments:assignment_detail", pk=pk)
     return render(request, "assignments/submit.html",
@@ -182,10 +191,10 @@ def submission_list(request):
     """Grading queue. ?status=ungraded (default) | graded | all"""
     qs = _instructor_submissions(request.user)
     status = request.GET.get("status", "ungraded")
-    if status == "ungraded":
-        qs = qs.filter(grade__isnull=True)
+    if status == "ungraded":  # includes work resubmitted after grading
+        qs = qs.filter(needs_grading_q())
     elif status == "graded":
-        qs = qs.filter(grade__isnull=False)
+        qs = qs.filter(grade__isnull=False).exclude(needs_grading_q())
     course_id = request.GET.get("course", "")
     if course_id and course_id.isdigit():
         qs = qs.filter(assignment__course_id=course_id)
@@ -248,7 +257,9 @@ def _student_rows(student, course, now):
     for a in course.assignments.select_related("group").order_by("due_date"):
         sub = subs.get(a.pk)
         grade = getattr(sub, "grade", None) if sub else None
-        if grade:
+        if grade and sub.needs_regrade:
+            status = "resubmitted"  # old grade still counts until regraded
+        elif grade:
             status = "graded"
         elif sub:
             status = "submitted"

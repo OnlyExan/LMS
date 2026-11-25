@@ -17,6 +17,9 @@
     </div>
   </div>
 
+  {% if submission.needs_regrade %}
+    <p class="gb-warn">Resubmitted {{ submission.submitted_at|date:"M j, g:i A" }}, after it was graded. The current grade ({{ grade.points_earned|floatformat:"-2" }}) counts until you save a grade here.</p>
+  {% endif %}
   <section class="form-card">
     <h2 class="card-title">Submitted work</h2>
   {% if submission.response_text %}
