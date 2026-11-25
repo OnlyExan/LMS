@@ -30,7 +30,7 @@
         <tbody>
         {% for r in rows %}
           <tr>
-            <td><strong>{{ r.assignment.title }}</strong></td>
+            <td><a class="row-link" href="{% url 'assignments:assignment_detail' r.assignment.pk %}"><strong>{{ r.assignment.title }}</strong></a></td>
             {% if course.weighted_grading %}<td>{% if r.assignment.group %}{{ r.assignment.group.name }}{% else %}<span class="muted">—</span>{% endif %}</td>{% endif %}
             <td>{{ r.assignment.due_date|date:"M j, g:i A" }}</td>
             <td>
