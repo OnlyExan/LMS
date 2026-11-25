@@ -42,8 +42,8 @@
 .due-list { list-style: none; margin: 0; padding: 0; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; }
 .due-list li { display: grid; grid-template-columns: 1fr auto auto; gap: 1rem; align-items: center; padding: 0.75rem 1.1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; }
 .due-list li:last-child { border-bottom: 0; }
-.due-list a { display: flex; gap: 0.6rem; align-items: baseline; text-decoration: none; color: inherit; }
-.due-list a:hover strong { color: var(--brand); }
+.due-list a:not(.btn) { display: flex;  /* the row link, not the Submit button */ gap: 0.6rem; align-items: baseline; text-decoration: none; color: inherit; }
+.due-list a:not(.btn):hover strong { color: var(--brand); }
 .due-when { color: #b45309; font-weight: 600; white-space: nowrap; }
 .dash-header .btn { align-self: center; }
 
@@ -57,10 +57,11 @@
 .callout-danger a { color: #991b1b; }
 .all-clear { padding: 1rem 1.25rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; color: #166534; }
 .grade-pill { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
-.btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
+.btn-sm { height: 30px; padding: 0 0.75rem; font-size: 0.8rem; }
 
 /* polish pass: breathing room under page headers and before action rows */
 .dash-header + .toolbar, .dash-header + .table-card, .dash-header + .course-grid { margin-top: 1.25rem; }
 .form-card + .actions { margin-top: 1rem; }
 .due-when.due-future { color: #1f2933; }  /* upcoming */
 .due-when.due-past { color: #dc2626; }    /* past due */
+
