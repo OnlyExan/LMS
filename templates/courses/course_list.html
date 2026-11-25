@@ -27,12 +27,12 @@
   <div class="toolbar">
     <div class="chips">
       <a class="chip{% if not filters.mine %} active{% endif %}"
-         href="{% url 'courses:course_list' %}?{% if filters.term %}term={{ filters.term|urlencode }}&{% endif %}{% if filters.code %}code={{ filters.code|urlencode }}&{% endif %}{% if filters.q %}q={{ filters.q|urlencode }}{% endif %}">All</a>
+         href="?mine=0{% if filters.term %}&term={{ filters.term|urlencode }}{% endif %}{% if filters.code %}&code={{ filters.code|urlencode }}{% endif %}{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}">All</a>
       <a class="chip{% if filters.mine %} active{% endif %}"
          href="?mine=1{% if filters.term %}&term={{ filters.term|urlencode }}{% endif %}{% if filters.code %}&code={{ filters.code|urlencode }}{% endif %}{% if filters.q %}&q={{ filters.q|urlencode }}{% endif %}">My courses</a>
     </div>
     <form method="get" class="search">
-      {% if filters.mine %}<input type="hidden" name="mine" value="1">{% endif %}
+      <input type="hidden" name="mine" value="{{ filters.mine|yesno:'1,0' }}">{# search stays on this tab #}
       <input type="search" name="q" value="{{ filters.q }}" placeholder="Search title, code, description…">
       <input type="text" name="code" value="{{ filters.code }}" placeholder="Code">
       <select name="term" class="role-select">
@@ -62,9 +62,18 @@
       </article>
     {% empty %}
       <div class="empty-card">
-        {% if filters.mine or filters.term or filters.code or filters.q %}
+        {% if filters.term or filters.code or filters.q %}
           <p>No courses match these filters.</p>
-          <a class="btn" href="{% url 'courses:course_list' %}">Clear filters</a>
+          <a class="btn" href="?mine={{ filters.mine|yesno:'1,0' }}">Clear filters</a>
+        {% elif filters.mine %}
+          {% if user.role == "student" %}
+            <p>You're not in any courses yet.</p>
+          {% elif user.role == "instructor" %}
+            <p>You're not teaching any courses yet.</p>
+          {% else %}
+            <p>You don't have any courses yet.</p>
+          {% endif %}
+          <a class="btn" href="?mine=0">Browse all courses</a>
         {% elif user.role == "student" %}
           <p>No courses to show yet.</p>
         {% else %}

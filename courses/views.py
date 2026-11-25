@@ -32,7 +32,12 @@ def course_list(request):
     term = request.GET.get("term", "").strip()
     code = request.GET.get("code", "").strip()
     q = request.GET.get("q", "").strip()
-    mine = request.GET.get("mine") == "1"
+    # ?mine=1 / ?mine=0 pick a tab; with neither, students and instructors start on their own courses
+    mine_arg = request.GET.get("mine")
+    if mine_arg in ("0", "1"):
+        mine = mine_arg == "1"
+    else:
+        mine = user.role in (User.STUDENT, User.INSTRUCTOR)
     if term:
         courses = courses.filter(term__iexact=term)
     if code:

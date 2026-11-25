@@ -82,6 +82,6 @@
   <div class="actions">
     <a class="btn" href="{% url 'assignments:submission_list' %}?status=ungraded">Grading queue</a>
     <a class="btn btn-secondary" href="{% url 'assignments:assignment_list' %}">All assignments</a>
-    <a class="btn btn-secondary" href="{% url 'courses:course_list' %}">Browse courses</a>
+    <a class="btn btn-secondary" href="{% url 'courses:course_list' %}?mine=0">Browse courses</a>
   </div>
 </section>

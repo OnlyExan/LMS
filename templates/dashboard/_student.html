@@ -6,7 +6,7 @@
       <h1>Welcome back, {{ user.first_name|default:user.username }}</h1>
       <p class="muted">{{ school.name }} · Student dashboard</p>
     </div>
-    <a class="btn" href="{% url 'courses:course_list' %}">Browse courses</a>
+    <a class="btn" href="{% url 'courses:course_list' %}?mine=0">Browse courses</a>
   </header>
 
   <div class="stat-grid">
@@ -81,7 +81,7 @@
     {% empty %}
       <div class="empty-card">
         <p>You're not enrolled in any courses yet.</p>
-        <a class="btn" href="{% url 'courses:course_list' %}">Find a course</a>
+        <a class="btn" href="{% url 'courses:course_list' %}?mine=0">Find a course</a>
       </div>
     {% endfor %}
   </div>

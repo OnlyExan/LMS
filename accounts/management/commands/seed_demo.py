@@ -25,6 +25,8 @@ SCHOOLS = {
             ("CSE4100", "Systems Administration & Self-Hosting", "prof_gonzalez"),
             ("CSE3100", "Database Systems", "prof_lee"),
             ("CSE4400", "Applied Machine Learning", "prof_gonzalez"),
+            # Maria isn't enrolled here, so her My courses and All tabs differ
+            ("CSE4600", "Web Application Development", "prof_lee"),
         ],
     },
     # second tenant so isolation is visible in the demo
@@ -61,6 +63,9 @@ STUDENT_LEVEL = {"stu_jay": 95, "stu_maria": 87, "stu_tess": 81, "stu_kim": 74, 
 
 # (course, assignment, student): allows resubmission after grading, and the student resubmitted
 RESUBMITTED = ("CSE4400", "Homework 2", "stu_maria")
+
+# left unsubmitted so the student's "Due in the next 7 days" isn't empty in the demo
+NOT_YET_SUBMITTED = {("stu_maria", "Homework 3")}
 
 
 class Command(BaseCommand):
@@ -144,7 +149,7 @@ class Command(BaseCommand):
                     if days > 7:
                         continue  # final project: nothing submitted yet
                     for s_idx, stu in enumerate(enrolled):
-                        if (s_idx + a_idx) % 5 == 4:
+                        if (s_idx + a_idx) % 5 == 4 or (stu.username, a_title) in NOT_YET_SUBMITTED:
                             continue  # some missing submissions
                         sub = Submission.objects.filter(assignment=asg, student=stu).first()
                         if not sub:
@@ -189,6 +194,7 @@ class Command(BaseCommand):
             "  CSE4400 is weighted (Homework 40 / Projects 35 / Final 25) with a +/- scale;\n"
             "    Maria resubmitted Homework 2 there after grading (shows as Resubmitted)\n"
             "  Project Proposal is Text only, Final Project is File upload only (drop zone)\n"
+            "  Maria is in 3 of the 4 Cal State courses (not CSE4600), so Courses > All shows one more\n"
             "  instructor: prof_gonzalez / prof_lee\n"
             "  student:    stu_maria, stu_jay, stu_kim, stu_omar, stu_tess\n"
             "  other school: rt_admin, rt_prof, rt_stu1, rt_stu2"))

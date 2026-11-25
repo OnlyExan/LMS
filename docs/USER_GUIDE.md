@@ -50,7 +50,7 @@ The arrow at the bottom of the sidebar collapses it to icons only.
 - **Recent grades**: anything graded in the last 7 days, with a link to **See all grades**.
 
 ### Joining and leaving a course
-1. Go to **Courses**. Use the search box, the code box, the term dropdown or **My courses** to narrow the list.
+1. Click **Browse courses** on your dashboard (or **Courses** → **All**). **Courses** in the sidebar opens on **My courses**. Use the search box, the code box or the term dropdown to narrow the list.
 2. Open a course and click **Enroll**.
 3. To leave, open the course and click **Drop course**. You can enroll again later; your past work is kept.
 
