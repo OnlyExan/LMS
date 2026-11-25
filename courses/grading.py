@@ -17,6 +17,13 @@ def letter_for(scale, percent):
     return scale[-1][0]
 
 
+def letter_tone(letter):
+    """CSS tone for a letter: A green, B blue, C yellow, D/F red, anything else (Pass, P/NP) gray.
+    Goes by the first character, so A- / B+ take their letter's color."""
+    first = (letter or "").strip()[:1].upper()
+    return {"A": "tone-a", "B": "tone-b", "C": "tone-c", "D": "tone-f", "F": "tone-f"}.get(first, "tone-x")
+
+
 def fmt_min(n):
     """90 -> '90', 87.5 -> '87.5' (for forms and the scale table)."""
     return f"{Decimal(str(n)).normalize():f}"

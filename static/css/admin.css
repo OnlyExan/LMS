@@ -237,9 +237,10 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .small-note { font-size: 0.8rem; margin-top: 0.5rem; }
 
 /* letter grades */
-.letter-pill { display: inline-block; min-width: 1.6rem; padding: 0.05rem 0.4rem; margin-left: 0.25rem; border-radius: 6px; background: #eef2ff; color: var(--brand, #2563eb); font-size: 0.8rem; font-weight: 800; text-align: center; vertical-align: middle; }
+.letter-pill { display: inline-block; min-width: 1.6rem; padding: 0.05rem 0.4rem; margin-left: 0.25rem; border-radius: 6px; font-size: 0.8rem; font-weight: 800;  /* color from .tone-* */ text-align: center; vertical-align: middle; }
 .letter-big { font-size: 1.1rem; padding: 0.15rem 0.55rem; vertical-align: 0.35rem; }
-.gb-letter { display: inline-block; min-width: 1.6rem; margin-left: 0.2rem; font-weight: 800; color: var(--brand, #2563eb); text-align: left; }
+.gb-letter { display: inline-block; min-width: 1.9rem; margin-left: 0.3rem; padding: 0 0.3rem; border-radius: 5px; font-size: 0.8rem; font-weight: 800; text-align: center; }  /* colored by .tone-* */
+.gb-letter:empty { padding: 0; }
 .scale-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
 .scale-chip { padding: 0.3rem 0.65rem; border: 1px solid #e5e7eb; border-radius: 999px; background: #fff; font-size: 0.85rem; color: #4b5563; }
 .scale-chip strong { color: #111827; margin-right: 0.15rem; }
@@ -321,3 +322,6 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 .current-file a { font-weight: 600; color: var(--brand, #2563eb); text-decoration: none; }
 .current-file a:hover { text-decoration: underline; }
 .field input[type="file"] { height: auto; padding: 0.45rem 0.6rem; }
+
+/* scale chips on the course grades page: letter in its color */
+.scale-chip .scale-letter { padding: 0 0.3rem; border-radius: 4px; }

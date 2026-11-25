@@ -134,6 +134,8 @@ By default the grade is **total points**: points earned ÷ points possible, so a
 
 The grade becomes each group's % (points earned ÷ possible within the group) × its weight. Groups with nothing graded yet are left out and the rest are scaled up to 100%, so early in the term the grade isn't dragged down by work that hasn't happened. An assignment with **No group** doesn't count; the gradebook shows a yellow warning listing them. Students see each assignment's group and a **How your grade is weighted** table on their course grades page. Untick the box to go back to total points; the groups are kept for later.
 
+Letters are color-coded everywhere they appear: **A** green, **B** blue, **C** yellow, **D/F** red (A-, B+ etc. take their letter's color), and custom letters like Pass gray.
+
 A student gets the highest letter their % reaches, using the % as shown (rounded to 1 decimal), so 89.96% shows as 90.0% and gets the A. Students see their letter on the **Grades** tab and the scale on each course's grades page.
 
 ## School admins

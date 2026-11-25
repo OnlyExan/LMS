@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static grading_tags %}
 {% block title %}{{ course.code }} gradebook{% endblock %}
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
@@ -81,7 +81,7 @@
             </td>
             <td class="gb-num gb-pct">
               <span class="gb-pct-val">{% if row.percent is not None %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
-              <span class="gb-letter">{{ row.letter|default:"" }}</span>
+              <span class="gb-letter {{ row.letter|letter_tone }}">{{ row.letter|default:"" }}</span>
             </td>
           </tr>
         {% empty %}
@@ -97,7 +97,7 @@
             {% endfor %}
             <td class="gb-num gb-earned"></td>
             <td class="gb-num gb-pct"><span class="gb-class-pct">{% if class_stats.percent is not None %}{{ class_stats.percent|floatformat:1 }}%{% else %}—{% endif %}</span>
-              <span class="gb-letter gb-class-letter">{{ class_stats.letter|default:"" }}</span></td>
+              <span class="gb-letter gb-class-letter {{ class_stats.letter|letter_tone }}">{{ class_stats.letter|default:"" }}</span></td>
           </tr>
           <tr class="gb-stat">
             <th class="gb-student" scope="row">High</th>
@@ -137,6 +137,10 @@
   // same rule as the server: % rounded to 1 decimal, highest letter it reaches
   const letter = p => { if (p === null) return ""; const r = Math.round(p * 10) / 10;
     for (const [l, m] of scale) if (r >= m) return l; return scale[scale.length - 1][0]; };
+  // same as courses/grading.py letter_tone: A green, B blue, C yellow, D/F red, else gray
+  const TONES = ["tone-a", "tone-b", "tone-c", "tone-f", "tone-x"];
+  const tone = l => ({A: "tone-a", B: "tone-b", C: "tone-c", D: "tone-f", F: "tone-f"})[(l || "").trim().charAt(0).toUpperCase()] || "tone-x";
+  const setLetter = (el, l) => { el.textContent = l; el.classList.remove(...TONES); if (l) el.classList.add(tone(l)); };
   const isDirty = i => i.value.trim() !== i.dataset.orig;
 
   // live Earned / % per row: graded (or typed) cells only, same rule as the server
@@ -164,7 +168,7 @@
     }
     tr.dataset.pct = pct === null ? "" : pct;
     tr.querySelector(".gb-pct-val").textContent = pct === null ? "—" : pct.toFixed(1) + "%";
-    tr.querySelector(".gb-letter").textContent = letter(pct);
+    setLetter(tr.querySelector(".gb-letter"), letter(pct));
   }
 
   // live class average / high / low per assignment + class %
@@ -179,7 +183,7 @@
     const pcts = [...document.querySelectorAll("tr[data-row]")].map(tr => tr.dataset.pct).filter(p => p !== "" && p !== undefined).map(Number);
     const avg = pcts.length ? pcts.reduce((a, b) => a + b, 0) / pcts.length : null;
     document.querySelector(".gb-class-pct").textContent = avg === null ? "—" : avg.toFixed(1) + "%";
-    document.querySelector(".gb-class-letter").textContent = letter(avg);
+    setLetter(document.querySelector(".gb-class-letter"), letter(avg));
   }
 
   function refresh() {

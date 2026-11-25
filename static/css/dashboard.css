@@ -57,9 +57,6 @@
 .callout-danger a { color: #991b1b; }
 .all-clear { padding: 1rem 1.25rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; color: #166534; }
 .grade-pill { padding: 0.15rem 0.6rem; border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; }
-.g-a { background: #dcfce7; color: #166534; }
-.g-b { background: #fef3c7; color: #92400e; }
-.g-c { background: #fee2e2; color: #991b1b; }
 .btn-sm { padding: 0.3rem 0.75rem; font-size: 0.8rem; }
 
 /* polish pass: breathing room under page headers and before action rows */

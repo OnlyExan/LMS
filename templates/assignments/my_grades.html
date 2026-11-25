@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% load static %}
+{% load static grading_tags %}
 {% block title %}My grades{% endblock %}
 {% block extra_head %}
   <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
@@ -33,7 +33,7 @@
             </td>
             <td>{{ c.graded }} of {{ c.total }}</td>
             <td>{% if c.graded %}{{ c.earned|floatformat:"-2" }} / {{ c.possible|floatformat:"-2" }}{% else %}<span class="muted">—</span>{% endif %}</td>
-            <td class="num grade-pct">{% if c.percent is not None %}<span class="grade-cell"><span>{{ c.percent|floatformat:1 }}%</span><span class="letter-pill">{{ c.letter }}</span></span>{% else %}<span class="muted">—</span>{% endif %}</td>
+            <td class="num grade-pct">{% if c.percent is not None %}<span class="grade-cell"><span>{{ c.percent|floatformat:1 }}%</span><span class="letter-pill {{ c.letter|letter_tone }}">{{ c.letter }}</span></span>{% else %}<span class="muted">—</span>{% endif %}</td>
           </tr>
         {% endfor %}
         </tbody>

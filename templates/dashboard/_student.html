@@ -1,4 +1,5 @@
 {# LSM-86: student dashboard block. Context: school, enrollments (.course .current_grade), due_soon, overdue, recent_grades #}
+{% load grading_tags %}
 <section class="dash">
   <header class="dash-header">
     <div>
@@ -71,7 +72,7 @@
         <div class="course-meta">
           <span>Current grade</span>
           {% if e.current_grade is not None %}
-            <span class="grade-pill {% if e.current_grade >= 90 %}g-a{% elif e.current_grade >= 70 %}g-b{% else %}g-c{% endif %}">{{ e.current_grade|floatformat:1 }}% · {{ e.current_letter }}</span>
+            <span class="grade-pill {{ e.current_letter|letter_tone }}">{{ e.current_grade|floatformat:1 }}% · {{ e.current_letter }}</span>
           {% else %}
             <span class="muted">No grades yet</span>
           {% endif %}
@@ -96,9 +97,9 @@
             <span class="muted">{{ g.submission.assignment.course.code }}</span>
           </a>
           <span class="muted">graded {{ g.graded_at|timesince }} ago</span>
-          <span class="grade-pill {% if g.percentage >= 90 %}g-a{% elif g.percentage >= 70 %}g-b{% else %}g-c{% endif %}">
-            {{ g.percentage|floatformat:0 }}%
-          </span>
+          {% with letter=g.percentage|letter_in:g.submission.assignment.course %}
+          <span class="grade-pill {{ letter|letter_tone }}">{{ g.percentage|floatformat:0 }}% · {{ letter }}</span>
+          {% endwith %}
         </li>
       {% endfor %}
     </ul>
