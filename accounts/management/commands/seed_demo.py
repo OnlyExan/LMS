@@ -48,9 +48,19 @@ COURSE_GRADING = {
     },
 }
 
-# (title, days from now, points)
-ASSIGNMENTS = [("Homework 1", -14, 100), ("Homework 2", -5, 100),
-               ("Project Proposal", -2, 50), ("Homework 3", 3, 100), ("Final Project", 21, 200)]
+# (title, days from now, points, what students turn in, allowed file types)
+ASSIGNMENTS = [("Homework 1", -14, 100, Assignment.BOTH, ["pdf", "word", "text"]),
+               ("Homework 2", -5, 100, Assignment.BOTH, ["pdf", "word", "text"]),
+               ("Project Proposal", -2, 50, Assignment.TEXT, []),
+               ("Homework 3", 3, 100, Assignment.BOTH, ["pdf", "word", "text"]),
+               ("Final Project", 21, 200, Assignment.FILE, ["pdf", "word", "zip"])]
+
+# rough level per student so the demo shows every letter color (A green ... D/F red)
+STUDENT_LEVEL = {"stu_jay": 95, "stu_maria": 87, "stu_tess": 81, "stu_kim": 74, "stu_omar": 60,
+                 "rt_stu1": 90, "rt_stu2": 78}
+
+# (course, assignment, student): allows resubmission after grading, and the student resubmitted
+RESUBMITTED = ("CSE4400", "Homework 2", "stu_maria")
 
 
 class Command(BaseCommand):
@@ -113,12 +123,17 @@ class Command(BaseCommand):
                     course.save(update_fields=["grading_scale", "weighted_grading"])
 
                 enrolled = [e.student for e in course.enrollments.filter(status="active")]
-                for a_idx, (a_title, days, pts) in enumerate(ASSIGNMENTS):
+                for a_idx, (a_title, days, pts, kind, types) in enumerate(ASSIGNMENTS):
                     asg, _ = Assignment.objects.get_or_create(
                         course=course, title=a_title,
                         defaults=dict(due_date=now + timedelta(days=days),
                                       points_possible=pts,
                                       description=f"{a_title} for {code}."))
+                    # demo settings (also applied to an already-seeded database)
+                    allow = (code, a_title) == RESUBMITTED[:2]
+                    if (asg.submission_type, asg.allowed_file_types, asg.allow_resubmit) != (kind, types, allow):
+                        asg.submission_type, asg.allowed_file_types, asg.allow_resubmit = kind, types, allow
+                        asg.save(update_fields=["submission_type", "allowed_file_types", "allow_resubmit"])
                     for pos, (g_name, weight, titles) in enumerate(grading.get("groups", [])):
                         if a_title in titles:
                             group, _ = AssignmentGroup.objects.update_or_create(
@@ -148,11 +163,22 @@ class Command(BaseCommand):
                         # weighted demo course also grades its newest work (queue keeps the others')
                         recent = grading.get("grade_recent") and days < 0
                         if (days <= -5 or recent) and not hasattr(sub, "grade"):
-                            score = pts * Decimal(70 + (s_idx * 7 + a_idx * 5) % 30) / 100
+                            level = STUDENT_LEVEL.get(stu.username, 80) + (a_idx * 3) % 7 - 3  # +/-3 per assignment
+                            score = pts * Decimal(min(level, 100)) / 100
                             Grade.objects.create(submission=sub, points_earned=round(score, 2),
                                                  feedback="Nice work." if score > pts * Decimal("0.85")
                                                  else "Review the rubric.",
                                                  graded_by=course.instructor)
+                            # graded a day after it was due (instead of "just now")
+                            Grade.objects.filter(submission=sub).update(
+                                graded_at=min(asg.due_date + timedelta(days=1), now - timedelta(hours=1)))
+
+                        # one resubmission after grading, so "Resubmitted" shows in the queue and gradebook
+                        if (code, a_title, stu.username) == RESUBMITTED and hasattr(sub, "grade") \
+                                and not sub.needs_regrade:
+                            sub.refresh_from_db()
+                            sub.response_text = f"{stu.first_name}'s revised answer to {a_title}, after feedback."
+                            sub.save(keep_late=True)  # new version, now; grade stays until regraded
 
             self.stdout.write(self.style.SUCCESS(
                 f"{school_name}: join code {school.join_code}"))
@@ -160,7 +186,9 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS(
             f"\nDone. Every demo user's password: {PASSWORD}\n"
             "  admin:      demo_admin   (Cal State Demo)\n"
-            "  CSE4400 is weighted (Homework 40 / Projects 35 / Final 25) with a +/- scale\n"
+            "  CSE4400 is weighted (Homework 40 / Projects 35 / Final 25) with a +/- scale;\n"
+            "    Maria resubmitted Homework 2 there after grading (shows as Resubmitted)\n"
+            "  Project Proposal is Text only, Final Project is File upload only (drop zone)\n"
             "  instructor: prof_gonzalez / prof_lee\n"
             "  student:    stu_maria, stu_jay, stu_kim, stu_omar, stu_tess\n"
             "  other school: rt_admin, rt_prof, rt_stu1, rt_stu2"))
