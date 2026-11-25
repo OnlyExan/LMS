@@ -61,6 +61,8 @@ class SubmissionForm(forms.ModelForm):
     class Meta:
         model = Submission
         fields = ("response_text", "file_upload")
+        # plain picker: no "Currently / Clear" widget; an empty picker keeps the current file
+        widgets = {"file_upload": forms.FileInput}
 
     def __init__(self, *args, assignment=None, **kwargs):
         super().__init__(*args, **kwargs)

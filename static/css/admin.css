@@ -315,3 +315,9 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 /* assignment list filters: date pickers don't need 260px; wrap instead of overflowing */
 .search { flex-wrap: wrap; justify-content: flex-end; }
 .search input[type="date"] { width: 10.5rem; }
+
+/* resubmit: current file line above the picker */
+.current-file { font-weight: 400; font-size: 0.88rem; color: #374151; }
+.current-file a { font-weight: 600; color: var(--brand, #2563eb); text-decoration: none; }
+.current-file a:hover { text-decoration: underline; }
+.field input[type="file"] { height: auto; padding: 0.45rem 0.6rem; }

@@ -151,6 +151,9 @@ After every `migrate` on Postgres, `accounts/db_security.py` turns on Row Level 
 |---|---|
 | `python manage.py seed_demo` | Add demo schools, users, courses, assignments and grades (safe to re-run). `--flush` resets, `--clear` deletes demo data only |
 | `python manage.py wipe_data` | Delete everything except superusers |
+| `python manage.py axes_list_attempts` | see who's locked / failed attempts |
+| `python manage.py axes_reset_username {username}` | unlock one user |
+| `python manage.py axes_reset` | clear ALL lockouts and failed attempts |
 
 These run against whatever database `.env` points to.
 

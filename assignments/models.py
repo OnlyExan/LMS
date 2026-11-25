@@ -79,6 +79,11 @@ class Submission(models.Model):
         )
 
     @property
+    def file_name(self):
+        """Just the file's name, without the storage folder."""
+        return self.file_upload.name.rsplit("/", 1)[-1] if self.file_upload else ""
+
+    @property
     def is_empty(self):
         """No text and no file: created by the gradebook to grade missing work (students can't submit empty)."""
         return not self.response_text and not self.file_upload

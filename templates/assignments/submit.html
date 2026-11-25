@@ -31,6 +31,9 @@
     {% if form.file_upload %}
       <label class="field">
         <span>File upload</span>
+        {% if submission.file_upload %}
+          <span class="current-file">Current file: <a href="{{ submission.file_upload.url }}" target="_blank" rel="noopener">{{ submission.file_name }}</a> <span class="muted small">· choose a new file to replace it, or leave empty to keep it</span></span>
+        {% endif %}
         {{ form.file_upload }}
         {% if form.file_upload.help_text %}<span class="muted small">{{ form.file_upload.help_text }}</span>{% endif %}
         {% for error in form.file_upload.errors %}<span class="field-error">{{ error }}</span>{% endfor %}

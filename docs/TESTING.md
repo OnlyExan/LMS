@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 227 tests, all passing (about 30 s).
+**Current result:** 229 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `227 passed, 0 failed, 0 errors, 0 skipped (227 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `229 passed, 0 failed, 0 errors, 0 skipped (229 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -76,7 +76,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_student_grades.py` | 5 | Grades tab shows each course's %, per-course page lists every assignment with Graded/Submitted/Missing/Upcoming, other-school and dropped courses 404, instructors blocked | Functional, Security | |
 | `test_letter_grades.py` | 10 | Default and custom letter scales, rounding matches the shown %, custom-scale validation (floor at 0, no duplicate letters or cutoffs, 0–100, ≤2 decimals), letters on student pages and gradebook, class average/high/low ignore dropped students | Functional | |
 | `test_weighted_grades.py` | 16 | Weighted grade math (empty and 0-weight groups skipped and rescaled, ungrouped ignored), creating/renaming/removing groups and putting assignments in them, weights must total 100, bad rows rejected, another course's group can't be used or edited, pages without the weights section never wipe groups, gradebook and student pages use the weights, ungrouped warning, turning it off goes back to points | Functional, Security | |
-| `test_review_fixes.py` | 8 | Assignment delete pop-up escapes the title, no "0 minutes remaining" on past-due work, `is_past_due`, Graded status on the assignment list, dropped students leave the grading queue / badge / dashboard counts (and come back if re-enrolled), student dashboard uses weights + letter, group dropdown label | Security, Functional, Usability | |
+| `test_review_fixes.py` | 10 | Assignment delete pop-up escapes the title, no "0 minutes remaining" on past-due work, `is_past_due`, Graded status on the assignment list, dropped students leave the grading queue / badge / dashboard counts (and come back if re-enrolled), student dashboard uses weights + letter, group dropdown label, resubmit uses a plain file picker (no Clear checkbox) and keeps the file when left empty | Security, Functional, Usability | |
 | **Total** | **180** | | | |
 
 ### Security tests

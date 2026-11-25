@@ -114,3 +114,31 @@ class GroupLabelTests(LMSTestCase):
         g = AssignmentGroup.objects.create(course=self.data["a"]["course"], name="Homework", weight=Decimal("40.00"))
         form = AssignmentForm(course=self.data["a"]["course"])
         self.assertEqual(form.fields["group"].label_from_instance(g), "Homework (40%)")
+
+
+class ResubmitFileWidgetTests(LMSTestCase):
+    def setUp(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        a = self.data["a"]
+        self.stu, self.asg = a["stu"], a["asg"]
+        Enrollment.objects.update_or_create(student=self.stu, course=a["course"], defaults={"status": Enrollment.ACTIVE})
+        self.sub = Submission.objects.create(assignment=self.asg, student=self.stu,
+                                             file_upload=SimpleUploadedFile("essay.pdf", b"%PDF-1"))
+
+    def test_no_clear_checkbox(self):
+        from assignments.forms import SubmissionForm
+        html = str(SubmissionForm(instance=self.sub, assignment=self.asg)["file_upload"])
+        self.assertNotIn("checkbox", html)
+        self.assertNotIn("Currently", html)
+
+    def test_empty_picker_keeps_file(self):
+        old = self.sub.file_upload.name
+        self.login(self.stu)
+        self.client.post(reverse("assignments:submit", args=[self.asg.pk]), {"response_text": "now with text"})
+        self.sub.refresh_from_db()
+        self.assertEqual(self.sub.file_upload.name, old)
+        self.assertEqual(self.sub.response_text, "now with text")
+        self.assertEqual(self.sub.file_name, old.rsplit("/", 1)[-1])
+
+    def tearDown(self):
+        Submission.objects.filter(pk=self.sub.pk).first() and self.sub.file_upload.delete(save=False)
