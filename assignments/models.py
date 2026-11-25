@@ -16,6 +16,11 @@ class Assignment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # LSM-100: keys from filetypes.FILE_TYPES; empty list = text response only
     allowed_file_types = models.JSONField(default=default_file_types, blank=True)
+    # what students turn in. text: response box only (allowed_file_types = []), file: upload only,
+    # both: text and/or file. DB default "both" keeps older rows as they were; the form defaults new ones to "file".
+    TEXT, FILE, BOTH = "text", "file", "both"
+    SUBMISSION_TYPES = [(FILE, "File upload only"), (TEXT, "Text only"), (BOTH, "Text and/or file")]
+    submission_type = models.CharField(max_length=4, choices=SUBMISSION_TYPES, default=BOTH)
     # students may resubmit after their work is graded (old grade stays until regraded)
     allow_resubmit = models.BooleanField(default=False)
     # weighted grading bucket; must be a group of the same course (deleting the group just ungroups)
@@ -43,7 +48,11 @@ class Assignment(models.Model):
 
     @property
     def accepts_files(self):
-        return bool(self.allowed_extensions)
+        return self.submission_type != self.TEXT and bool(self.allowed_extensions)
+
+    @property
+    def accepts_text(self):
+        return self.submission_type != self.FILE or not self.accepts_files  # never leave nothing to submit
 
     @property
     def accept_attr(self):

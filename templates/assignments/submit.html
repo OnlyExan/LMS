@@ -22,22 +22,31 @@
     {% csrf_token %}
     {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
 
-    <label class="field">
-      <span>Response</span>
-      <textarea name="response_text">{{ form.response_text.value|default:'' }}</textarea>
-      {% for error in form.response_text.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-    </label>
+    {% if form.response_text %}
+      <label class="field">
+        <span>Response</span>
+        <textarea name="response_text">{{ form.response_text.value|default:'' }}</textarea>
+        {% for error in form.response_text.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
+      </label>
+    {% endif %}
 
     {% if form.file_upload %}
-      <label class="field">
+      <div class="field">
         <span>File upload</span>
         {% if submission.file_upload %}
-          <span class="current-file">Current file: <a href="{{ submission.file_upload.url }}" target="_blank" rel="noopener">{{ submission.file_name }}</a> <span class="muted small">· choose a new file to replace it, or leave empty to keep it</span></span>
+          <span class="current-file">Current file: <a href="{{ submission.file_upload.url }}" target="_blank" rel="noopener">{{ submission.file_name }}</a> <span class="muted small">· drop a new file to replace it, or leave this empty to keep it</span></span>
         {% endif %}
-        {{ form.file_upload }}
-        {% if form.file_upload.help_text %}<span class="muted small">{{ form.file_upload.help_text }}</span>{% endif %}
+        {# real file input inside the zone: click, keyboard and drag-drop all go through it #}
+        <label class="dropzone" id="dropzone">
+          {{ form.file_upload }}
+          <span class="dz-icon" aria-hidden="true">⬆</span>
+          <span class="dz-main"><strong>Drag a file here</strong> or <span class="dz-link">choose a file</span></span>
+          <span class="dz-sub muted small">{{ form.file_upload.help_text|cut:"Allowed: " }} · max {{ form.max_upload_mb }} MB</span>
+          <span class="dz-picked" id="dzPicked" hidden></span>
+        </label>
+        <span class="field-error" id="dzError" hidden></span>
         {% for error in form.file_upload.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
-      </label>
+      </div>
     {% endif %}
 
     <div class="form-foot">
@@ -49,4 +58,49 @@
     </div>
   </form>
 </div>
+<script>
+// drop zone: drag-and-drop or click; warns about type/size before submitting (the server checks again)
+(() => {
+  const zone = document.getElementById("dropzone");
+  if (!zone) return;
+  const input = zone.querySelector('input[type="file"]');
+  const picked = document.getElementById("dzPicked"), err = document.getElementById("dzError");
+  const exts = (input.dataset.exts || "").split(",").filter(Boolean);
+  const maxMb = Number(input.dataset.maxMb || 10);
+  const size = b => b < 1024 * 1024 ? Math.max(1, Math.round(b / 1024)) + " KB" : (b / 1024 / 1024).toFixed(1) + " MB";
+
+  function show() {
+    const f = input.files[0];
+    err.hidden = true;
+    zone.classList.remove("dz-has-file", "dz-bad");
+    picked.hidden = !f;
+    if (!f) return;
+    const ext = "." + f.name.split(".").pop().toLowerCase();
+    let problem = "";
+    if (exts.length && (!f.name.includes(".") || !exts.includes(ext))) problem = "That file type isn't allowed here. Allowed: " + exts.join(", ");
+    else if (f.size > maxMb * 1024 * 1024) problem = `That file is ${size(f.size)}; the limit is ${maxMb} MB.`;
+    if (problem) {
+      input.value = "";  // don't send it
+      picked.hidden = true;
+      err.textContent = problem; err.hidden = false;
+      zone.classList.add("dz-bad");
+      return;
+    }
+    picked.textContent = `${f.name} · ${size(f.size)}`;
+    zone.classList.add("dz-has-file");
+  }
+  input.addEventListener("change", show);
+  ["dragenter", "dragover"].forEach(t => zone.addEventListener(t, e => { e.preventDefault(); zone.classList.add("dz-over"); }));
+  ["dragleave", "dragend"].forEach(t => zone.addEventListener(t, () => zone.classList.remove("dz-over")));
+  zone.addEventListener("drop", e => {
+    e.preventDefault();
+    zone.classList.remove("dz-over");
+    if (!e.dataTransfer.files.length) return;
+    const dt = new DataTransfer();
+    dt.items.add(e.dataTransfer.files[0]);  // one file per submission
+    input.files = dt.files;
+    show();
+  });
+})();
+</script>
 {% endblock %}

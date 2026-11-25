@@ -2,7 +2,7 @@
 
 How the LMS is tested, what the suite covers, and what it doesn't.
 
-**Current result:** 242 tests, all passing (about 30 s).
+**Current result:** 256 tests, all passing (about 30 s).
 
 ## Running the tests
 
@@ -13,7 +13,7 @@ python manage.py test tests.test_auth.RegisterTests.test_bad_join_code   # one t
 ```
 
 - Tests always run against a throwaway **SQLite** database, even if `.env` points at Supabase. `config/settings.py` sets `TESTING` when the command is `test` and skips the Postgres config, Supabase storage and the HTTPS redirect.
-- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `242 passed, 0 failed, 0 errors, 0 skipped (242 total)`.
+- Output comes from `config/test_runner.py`: one `PASSED` / `FAILED` / `ERROR` line per test, then a summary like `256 passed, 0 failed, 0 errors, 0 skipped (256 total)`.
 - Run `pip install -r requirements.txt` after pulling. The suite imports `axes`, so a stale `.venv` fails with `No module named 'axes'`.
 
 ## How the tests are built
@@ -79,6 +79,7 @@ Requirement IDs are from Progress Report 1. NFR names: **Tenant** = security, te
 | `test_review_fixes.py` | 11 | Assignment delete pop-up escapes the title, no "0 minutes remaining" on past-due work, `is_past_due`, Graded status on the assignment list, dropped students leave the grading queue / badge / dashboard counts (and come back if re-enrolled), student dashboard uses weights + letter, group dropdown label, resubmit uses a plain file picker (no Clear checkbox) and keeps the file when left empty, dashboard Submit button keeps its button styling | Security, Functional, Usability | |
 | `test_letter_colors.py` | 4 | Letter colors: A green, B blue, C yellow, D/F red, others gray (+/– keep their letter's color), template filters, gradebook JS uses the same map | Usability | |
 | `test_resubmit_after_grade.py` | 8 | Resubmitting graded work is blocked unless the assignment allows it; allowed resubmits keep the old grade (still counted), show Resubmitted, go back into the queue / badge / dashboard count, keep the original on-time status; saving on the grade page clears the flag, the gradebook only when the score changes; the assignment form saves the checkbox | Functional | |
+| `test_submission_type.py` | 14 | Submission type: file-only hides the text box and needs a file (a resubmit keeps the current one), text-only hides the upload and needs text, text-and/or-file needs one; new assignments default to File upload only, text clears file types, file types required otherwise, old checkbox still works; drop-zone hints; file-only submit end to end; migration keeps existing assignments' behavior; scripts only in the page body; saving school settings with a missing logo file doesn't crash | Functional, Usability | |
 | **Total** | **180** | | | |
 
 ### Security tests

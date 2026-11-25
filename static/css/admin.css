@@ -326,3 +326,22 @@ button.chip { cursor: pointer; font: inherit; font-size: 0.85rem; font-weight: 6
 /* scale chips on the course grades page: letter in its color */
 .scale-chip .scale-letter { padding: 0 0.3rem; border-radius: 4px; }
 .gb-warn + .form-card { margin-top: 0.75rem; }
+
+/* assignment form: submission type */
+.opt-label { margin: 0.2rem 0 0; font-size: 0.82rem; font-weight: 600; color: #374151; }
+.sub-types { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.sub-type { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.8rem; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.88rem; cursor: pointer; background: #fff; }
+.sub-type:has(input:checked) { border-color: var(--brand, #2563eb); background: #eff6ff; color: #1e3a8a; font-weight: 600; }
+.sub-type input { margin: 0; }
+
+/* submit page: drag-and-drop upload area (a real file input sits inside it) */
+.dropzone { position: relative; display: flex; flex-direction: column; align-items: center; gap: 0.3rem; padding: 1.6rem 1rem; border: 2px dashed #cbd5e1; border-radius: 10px; background: #f8fafc; text-align: center; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.dropzone:hover, .dropzone.dz-over { border-color: var(--brand, #2563eb); background: #eff6ff; }
+.dropzone:focus-within { border-color: var(--brand, #2563eb); box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+.dropzone input[type="file"] { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }  /* hidden but still focusable */
+.dz-icon { font-size: 1.4rem; color: var(--brand, #2563eb); line-height: 1; }
+.dz-main { font-size: 0.95rem; color: #111827; font-weight: 400; }
+.dz-link { color: var(--brand, #2563eb); font-weight: 600; text-decoration: underline; }
+.dz-picked { margin-top: 0.35rem; padding: 0.3rem 0.7rem; border-radius: 6px; background: #dcfce7; color: #166534; font-size: 0.85rem; font-weight: 600; }
+.dropzone.dz-has-file, .dropzone.dz-has-file:focus-within { border-color: #16a34a; border-style: solid; background: #f0fdf4; }
+.dropzone.dz-bad, .dropzone.dz-bad:focus-within { border-color: #dc2626; background: #fef2f2; }

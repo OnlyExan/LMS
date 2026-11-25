@@ -142,3 +142,11 @@ class ResubmitFileWidgetTests(LMSTestCase):
 
     def tearDown(self):
         Submission.objects.filter(pk=self.sub.pk).first() and self.sub.file_upload.delete(save=False)
+
+
+class DashboardButtonCssTests(SimpleTestCase):
+    def test_due_list_link_rule_skips_buttons(self):
+        # `.due-list a { color: inherit }` used to turn the Submit button's text dark
+        css = _read("static/css/dashboard.css")
+        self.assertIn(".due-list a:not(.btn) {", css)
+        self.assertNotIn(".due-list a {", css)
