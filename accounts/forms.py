@@ -1,6 +1,7 @@
 import re
 
 from django import forms
+from django.core.files.uploadedfile import UploadedFile
 from django.core.validators import validate_email
 from django.utils import timezone
 from django.contrib.auth.forms import UserCreationForm
@@ -173,7 +174,9 @@ class SchoolSettingsForm(forms.ModelForm):
 
     def clean_logo(self):
         logo = self.cleaned_data.get("logo")
-        if logo and hasattr(logo, "size") and logo.size > self.LOGO_MAX_MB * 1024 * 1024:
+        if not isinstance(logo, UploadedFile):  # unchanged saved logo: don't read it from storage
+            return logo
+        if logo.size > self.LOGO_MAX_MB * 1024 * 1024:
             raise forms.ValidationError(f"Logo must be under {self.LOGO_MAX_MB} MB.")
         image = getattr(logo, "image", None)  # set by ImageField for a new upload
         if image is not None and image.format not in self.LOGO_FORMATS:

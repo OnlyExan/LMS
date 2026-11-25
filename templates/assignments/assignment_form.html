@@ -56,16 +56,23 @@
 
     <fieldset class="scale-box">
       <legend>Submission options</legend>
-      <label class="check">{{ form.text_only }} Text response only</label>
-      <p class="muted small">Or choose which file types students may upload.</p>
-      <div class="check-list">{{ form.file_types }}</div>
+      <p class="opt-label">What students turn in</p>
+      <div class="sub-types">
+        {% for radio in form.submission_type %}
+          <label class="sub-type">{{ radio.tag }} <span>{{ radio.choice_label }}</span></label>
+        {% endfor %}
+      </div>
+      <div id="fileTypesBox" {% if form.submission_type.value == "text" %}hidden{% endif %}>
+        <p class="opt-label">Allowed file types</p>
+        <div class="check-list">{{ form.file_types }}</div>
+      </div>
       {% for error in form.file_types.errors %}<span class="field-error">{{ error }}</span>{% endfor %}
       <label class="check">{{ form.allow_resubmit }} Allow resubmission after grading</label>
       <p class="muted small">Students can resubmit graded work. Their grade stays until you regrade it, and the resubmission shows up in your grading queue.</p>
     </fieldset>
 
     <div class="form-foot">
-      <span class="muted small">Students can submit text, a file, or both.</span>
+      <span class="muted small" id="subTypeHint"></span>
       <div>
         <a class="btn-outline" href="{% if assignment %}{% url 'assignments:assignment_detail' assignment.pk %}{% else %}{% url 'courses:course_detail' course.pk %}{% endif %}">Cancel</a>
         <button type="submit" class="btn-primary">{% if assignment %}Save changes{% else %}Create assignment{% endif %}</button>
@@ -73,4 +80,20 @@
     </div>
   </form>
 </div>
+<script>
+// show file types only when files are allowed; one-line hint for the chosen type
+(() => {
+  const hints = {file: "Students upload a file (no text box).", text: "Students type a response (no file upload).",
+                 both: "Students can submit text, a file, or both."};
+  const box = document.getElementById("fileTypesBox"), hint = document.getElementById("subTypeHint");
+  const radios = document.querySelectorAll('input[name="submission_type"]');
+  const sync = () => {
+    const v = [...radios].find(r => r.checked)?.value || "file";
+    box.hidden = v === "text";
+    hint.textContent = hints[v];
+  };
+  radios.forEach(r => r.addEventListener("change", sync));
+  sync();
+})();
+</script>
 {% endblock %}

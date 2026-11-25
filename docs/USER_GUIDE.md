@@ -121,6 +121,14 @@ You can grade straight from the gradebook, like a spreadsheet:
 - Each student's **%** has a **letter grade** next to it.
 - The **Class average**, **High** and **Low** rows at the bottom show each assignment's stats, plus the class's average %. They only count graded cells of students still enrolled, and they update as you type.
 
+### What students turn in
+On the assignment's create/edit page, **Submission options → What students turn in**:
+- **File upload only** (default for new assignments): students get a drag-and-drop upload area and no text box. A file is required.
+- **Text only**: just a text box (file types are hidden).
+- **Text and/or file**: both; students must submit at least one.
+
+Pick the **Allowed file types** for file uploads. On the submit page students can drag a file onto the upload area or click **choose a file**; it shows the file's name and size, and warns right away if the type isn't allowed or it's over 10 MB (the server checks again on submit).
+
 ### Resubmission after grading
 By default students can replace a submission only until it's graded. To let them resubmit graded work, tick **Allow resubmission after grading** on the assignment's create/edit page. Then:
 - The student sees **Resubmit** on graded work. Their current grade stays (and keeps counting) until you regrade.

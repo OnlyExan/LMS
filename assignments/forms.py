@@ -1,4 +1,5 @@
 from django import forms
+from django.core.files.uploadedfile import UploadedFile
 from .filetypes import BLOCKED_EXTENSIONS, CHOICES, DEFAULT_FILE_TYPES, FILE_TYPES, extension_of
 from courses.models import AssignmentGroup
 from .models import Assignment, Grade, Submission
@@ -7,8 +8,11 @@ MAX_UPLOAD_MB = 10
 
 
 class AssignmentForm(forms.ModelForm):
-    # LSM-100: stored in Assignment.allowed_file_types
+    # LSM-100: stored in Assignment.allowed_file_types. text_only: old checkbox, still accepted
+    # from pages that don't send submission_type
     text_only = forms.BooleanField(required=False, label="Text response only (no file upload)")
+    submission_type = forms.ChoiceField(choices=Assignment.SUBMISSION_TYPES, required=False,
+                                        widget=forms.RadioSelect, label="Submission type")
     file_types = forms.MultipleChoiceField(choices=CHOICES, required=False,
                                            widget=forms.CheckboxSelectMultiple,
                                            label="Allowed file types")
@@ -32,6 +36,8 @@ class AssignmentForm(forms.ModelForm):
         self.fields["group"].label_from_instance = lambda g: f"{g.name} ({g.weight.normalize():f}%)"
         saved = self.instance.allowed_file_types if self.instance.pk else DEFAULT_FILE_TYPES
         self.fields["text_only"].initial = not saved
+        # new assignments default to "File upload only"
+        self.fields["submission_type"].initial = self.instance.submission_type if self.instance.pk else Assignment.FILE
         self.fields["file_types"].initial = saved or DEFAULT_FILE_TYPES
 
     def clean_points_possible(self):
@@ -42,15 +48,20 @@ class AssignmentForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if not cleaned.get("text_only") and not cleaned.get("file_types"):
-            self.add_error("file_types", "Pick at least one file type, or choose text response only.")
+        kind = cleaned.get("submission_type")
+        if not kind:  # page without the radios: old checkbox decides
+            kind = Assignment.TEXT if cleaned.get("text_only") else Assignment.BOTH
+        cleaned["submission_type"] = kind
+        if kind != Assignment.TEXT and not cleaned.get("file_types"):
+            self.add_error("file_types", "Pick at least one file type, or choose Text only.")
         return cleaned
 
     def save(self, commit=True):
         a = super().save(commit=False)
         picked = set(self.cleaned_data.get("file_types") or [])
         # text-only wins; otherwise keep master-list order so displays are consistent
-        a.allowed_file_types = [] if self.cleaned_data.get("text_only") else [k for k in FILE_TYPES if k in picked]
+        a.submission_type = self.cleaned_data["submission_type"]
+        a.allowed_file_types = [] if a.submission_type == Assignment.TEXT else [k for k in FILE_TYPES if k in picked]
         if "group" in self.data:  # only when the page has a group picker
             a.group = self.cleaned_data.get("group")
         if commit:
@@ -59,6 +70,8 @@ class AssignmentForm(forms.ModelForm):
 
 
 class SubmissionForm(forms.ModelForm):
+    max_upload_mb = MAX_UPLOAD_MB  # shown on the drop zone
+
     class Meta:
         model = Submission
         fields = ("response_text", "file_upload")
@@ -70,17 +83,26 @@ class SubmissionForm(forms.ModelForm):
         self.assignment = assignment
         if assignment is not None:
             if assignment.accepts_files:
-                # browser hint only; the real check is in clean_file_upload
-                self.fields["file_upload"].widget.attrs["accept"] = assignment.accept_attr
+                # browser hints only (accept, drop-zone warnings); the real checks are in clean_file_upload
+                self.fields["file_upload"].widget.attrs.update({
+                    "accept": assignment.accept_attr,
+                    "data-exts": ",".join(assignment.allowed_extensions),
+                    "data-max-mb": MAX_UPLOAD_MB,
+                })
                 self.fields["file_upload"].help_text = "Allowed: " + ", ".join(assignment.allowed_extensions)
             else:
                 del self.fields["file_upload"]  # text response only
+            if not assignment.accepts_text:
+                del self.fields["response_text"]  # file upload only
 
     def clean_file_upload(self):
         f = self.cleaned_data.get("file_upload")
-        if f and hasattr(f, "size") and f.size > MAX_UPLOAD_MB * 1024 * 1024:
+        # only check new uploads: reading .size on the already-saved file hits storage (and fails if it's gone)
+        if not isinstance(f, UploadedFile):
+            return f
+        if f.size > MAX_UPLOAD_MB * 1024 * 1024:
             raise forms.ValidationError(f"File must be under {MAX_UPLOAD_MB} MB.")
-        if f and hasattr(f, "size") and self.assignment is not None:  # new upload, not the existing file
+        if self.assignment is not None:
             ext = extension_of(f.name)
             allowed = self.assignment.allowed_extensions
             if ext in BLOCKED_EXTENSIONS or ext not in allowed:
@@ -89,7 +111,15 @@ class SubmissionForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if not cleaned.get("response_text") and not cleaned.get("file_upload"):
+        has_text = bool((cleaned.get("response_text") or "").strip())
+        has_file = bool(cleaned.get("file_upload"))  # a resubmit with an empty picker keeps the current file
+        if "response_text" not in self.fields:
+            if not has_file:
+                raise forms.ValidationError("Choose a file to upload.")
+        elif "file_upload" not in self.fields:
+            if not has_text:
+                raise forms.ValidationError("Write a response before submitting.")
+        elif not has_text and not has_file:
             raise forms.ValidationError("Submit text, a file, or both.")
         return cleaned
 
